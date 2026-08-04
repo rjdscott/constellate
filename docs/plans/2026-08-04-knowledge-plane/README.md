@@ -23,7 +23,7 @@
 
 | NN | Phase | Status | Last update |
 |----|-------|--------|-------------|
-| 01 | [Scaffold](phase-01-scaffold.md) | 🔵 Not started | 2026-08-04 |
+| 01 | [Scaffold](phase-01-scaffold.md) | 🟢 Completed | 2026-08-04 |
 | 02 | [Data & probes](phase-02-data-and-probes.md) | 🔵 Not started | 2026-08-04 |
 | 03 | [Lyra (embedded) end-to-end](phase-03-lyra.md) | 🔵 Not started | 2026-08-04 |
 | 04 | [Benchmark harness (go/no-go)](phase-04-harness.md) | 🔵 Not started | 2026-08-04 |

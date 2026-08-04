@@ -67,3 +67,12 @@ ablation, production-grade explorer SPA, FastMCP v3, constellation naming.
 Plan `docs/plans/2026-08-04-knowledge-plane/` moves to execution; phase 01
 (scaffold) starts on `feat/scaffold`. Foundation era complete — everything
 from here is build.
+
+## 2026-08-04 — Phase 01 complete: the contract exists before any engine
+
+Scaffold landed (`feat/scaffold`): uv + ruff + mypy --strict + pytest, core
+types and plane Protocols, working weighted-RRF fusion and six-step pipeline
+proven against in-memory fakes, per-platform configs with fingerprints,
+conformance suites executable-but-skipping, CI. The adapter boundary is now
+real: phase 03's engines must fit this contract, not shape it. Artifacts:
+`src/kp/core/*`, `tests/`, `config/{lyra,orion,hydra}.yaml`, PR #2.
