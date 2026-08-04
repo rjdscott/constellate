@@ -29,8 +29,8 @@ EKS-ready artifact, EKS itself deferred.
 - [x] `ui/` scaffold: Vite + React + TS + pnpm; Tailwind v4; CI job builds `dist/`
 - [x] Design tokens FIRST: color system (both themes, accessible chart palette validated per dataviz method), type scale, spacing, elevation; documented in `ui/src/design/README.md`
 - [x] App shell: navigation, theme toggle, layout grid, state (TanStack Query), API client with base-URL/snapshot-mode config
-- [ ] Explanation graph view: Cytoscape.js wrapper component, typed nodes (user/movie/tag/genre), hierarchical layout, animated path highlight, expand-on-click via `/v1/explain`
-- [ ] Playground: query builder (searchable pickers backed by `/v1/*`), platform/ablation toggles, side-by-side comparison panes, per-step timing readout
+- [x] Explanation graph view: Cytoscape.js wrapper component, typed nodes (user/movie/tag/genre), hierarchical layout, animated path highlight, expand-on-click via `/v1/explain`
+- [x] Playground: query builder (searchable pickers backed by `/v1/*`), platform/ablation toggles, side-by-side comparison panes, per-step timing readout
 - [ ] Benchmark dashboards: Observable Plot components fed from `/v1/bench-results` (serves committed `bench/results/*.json`); latency percentiles, quality bars with significance, ablation delta view
 - [ ] Polish pass: motion choreography, states, keyboard nav, responsive check
 - [ ] FastAPI serves `ui/dist/` locally; snapshot-mode build verified (no API)
@@ -130,3 +130,50 @@ content in `docs/research/2026-08-04-knowledge-plane-foundations/assets/`.
   *Second incident:* the python `.gitignore`'s unanchored `lib/` silently
   swallowed `ui/src/lib/` — the whole API client would have been missing from
   the PR. Both `lib/` and `lib64/` are now root-anchored.
+- 2026-08-05 — PR C landed: playground + constellation (explanation graph)
+  view. Query builder (`ui/src/routes/Playground.tsx`) lives entirely in URL
+  search params — seed/user, k, max_hops, planes, explain, platforms — so a
+  playground query is a shareable link and the overview stars' `?platform=`
+  preselect just works; Run is explicit (Cmd/Ctrl+Enter too), a shared link
+  that already names a subject auto-runs once on arrival. Results grid:
+  per-platform `ResultsPane` (`ui/src/components/playground/ResultsPane.tsx`)
+  with the timing strip, list view (cross-pane hover keyed by `item_id`,
+  consensus ✦), and a List/Constellation toggle. Constellation
+  (`Constellation.tsx`) is a Cytoscape.js wrapper: `ui/src/lib/paths.ts`
+  parses the alternating node/edge-type path arrays (verified against
+  `ingest/edges.py` prefixes and `cte.py`'s `_interleave`) into typed
+  `{kind, id, key}` nodes; the union of every recommendation's path is one
+  deduped graph, breadthfirst from the seed, node color/type via CSS custom
+  properties read at build time (same `getComputedStyle` pattern as Shell's
+  `motionSeconds`, so no raw hex in the component); row click plays the
+  seed→target path draw-on (`--motion-trace`, sequential edge-class toggles,
+  zero-duration under reduced motion collapses to instant) with everything
+  else dimmed to 35%; clicking a movie node expands via `/v1/similar`
+  (k=8, explain=true — not `/v1/explain`, which is point-to-point and doesn't
+  fit a from-a-node expansion) and merges into the same graph, breadcrumb
+  chips track expansion history; fullscreen is a Radix Dialog around a fresh
+  `GraphCanvas` mount (graph *data* state lives in the parent so expansions
+  survive the toggle, camera position doesn't — traded off for not fighting
+  React portals + a live cytoscape instance). Python side: `Service.hydrate`
+  passthrough + `GET /v1/items?ids=` (comma list, capped at 100) and
+  `GET /v1/tags` (genome-tags.csv read once into module state, 404 with a
+  clear message when the raw dataset isn't present — `TAGS_PATH` is a module
+  attribute rather than a default arg specifically so tests can monkeypatch
+  it and see the change). Vitest + happy-dom added for the UI (`pnpm test`,
+  wired into the CI `ui` job after typecheck); unit coverage on the path
+  parser (all four node kinds, malformed input) and `tidyTitle` (moved to
+  `ui/src/lib/format.ts`, shared with Overview). *Incidents, both caught in a
+  live browser pass before calling this done:* (1) the dev vite server had
+  been running since before the edits landed and was serving a stale,
+  near-empty Tailwind build — every route looked completely unstyled, not
+  just the new one; restarting `vite` fixed it, but it's a sharp edge worth
+  knowing (long-lived dev servers + heavy edit sessions can starve Tailwind's
+  JIT scan). (2) Cytoscape node labels never patched onto already-existing
+  nodes once `/v1/items`/`/v1/tags` resolved after the graph's first paint —
+  the topology-sync effect only added/removed elements by id-set diff, so
+  titles stuck on the `#id` fallback forever. Fixed by patching `data.label`
+  on every render regardless of topology, and gating the (re-)layout + fit on
+  an actual topology change so a title resolving doesn't re-animate the whole
+  graph. Also found breadthfirst's `fit: true` unreliable when combined with
+  `animate: true` (renders pinned in a corner) — added an explicit
+  `cy.fit()` in `layoutstop` as a backstop.

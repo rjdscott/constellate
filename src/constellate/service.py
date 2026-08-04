@@ -3,7 +3,9 @@ pipeline or adapters directly. Owns response enrichment (titles into
 recommendation metadata) so every surface explains itself the same way.
 """
 
+import csv
 import json
+from collections.abc import Sequence
 
 from constellate.config import PlatformConfig
 from constellate.core.pipeline import Pipeline
@@ -16,7 +18,25 @@ from constellate.core.types import (
     UserContext,
     UserId,
 )
-from constellate.ingest import CANONICAL_DIR
+from constellate.ingest import CANONICAL_DIR, RAW_DIR
+
+# Genome tags are dataset-wide (not platform-scoped), so this lives at module
+# state rather than on Service — every platform's Service reads the same 1128
+# rows. TAGS_PATH is a module attribute (not a default arg) so tests can
+# monkeypatch it and still see the change: default args bind at import time.
+TAGS_PATH = RAW_DIR / "ml-25m" / "genome-tags.csv"
+_tags_cache: dict[str, str] | None = None
+
+
+def load_tags() -> dict[str, str]:
+    """{"742": "zombies", ...} from genome-tags.csv, read once and cached."""
+    global _tags_cache
+    if _tags_cache is None:
+        if not TAGS_PATH.is_file():
+            raise FileNotFoundError(f"genome tags not found — run ingest to populate {TAGS_PATH}")
+        with TAGS_PATH.open(newline="") as f:
+            _tags_cache = {row["tagId"]: row["tag"] for row in csv.DictReader(f)}
+    return _tags_cache
 
 
 class Service:
@@ -60,6 +80,9 @@ class Service:
 
     async def search_items(self, q: str, limit: int = 20) -> list[Item]:
         return await self._relational.search_items(q, limit)
+
+    async def hydrate(self, ids: Sequence[ItemId]) -> list[Item]:
+        return await self._relational.hydrate(ids)
 
     async def user_context(self, user_id: UserId) -> UserContext:
         return await self._relational.get_user_context(user_id)

@@ -86,3 +86,6 @@ export interface BenchResultEntry {
 
 /** `GET /v1/health` */
 export type Health = Record<string, string>
+
+/** `GET /v1/tags` — genome tag id → name, e.g. {"742": "zombies"}. */
+export type TagNames = Record<string, string>
