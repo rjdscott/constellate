@@ -94,3 +94,15 @@ documented failure mode). New doc surface `docs/runbooks/` + `/runbook`
 skill, wired into CLAUDE.md: ADRs record why, runbooks record how, and the
 repo's own incidents become workshop teaching material. First two runbooks:
 local-dev-loop, ci-and-merging.
+
+## 2026-08-04 — Phase gate installed: doc discipline becomes machinery
+
+The post-phase-01 audit found four gaps in a doc set believed current —
+proof that discipline needs enforcement. Two-layer gate added: `make
+doc-check` (`scripts/check_docs.py` — link resolution, ADR index/status
+consistency, 🟢-phase invariants, runbook indexing) now runs inside `make
+check` and CI on every PR; the `/phase-gate` skill carries the judgment
+checklist (story-quality progress logs, narrative entries, ADRs at forks,
+runbook bumps, ripple staleness) that must pass before any phase flips 🟢.
+Workshop beat: checklists beat memory, and the gate's origin story is the
+audit that motivated it.

@@ -24,6 +24,16 @@ progress logs, ADRs at forks, runbook bumps when steps change, migration-
 narrative entries at milestones. The process itself is workshop teaching
 material; incidents and recoveries get written down, not buried.
 
+### Phase gate — `/phase-gate` skill, `make doc-check`
+
+- **No plan phase closes without the gate.** Deterministic layer:
+  `make doc-check` (`scripts/check_docs.py` — links resolve, ADR index
+  matches files, 🟢 phases have no unchecked tasks and a real progress log,
+  runbooks indexed) runs inside `make check`, so CI enforces it on every PR.
+- Judgment layer: `/phase-gate` walks the human checklist (progress log
+  tells the story, narrative entry, ADRs for forks, runbook bumps, ripple
+  staleness) before a phase flips 🟢 and the next one starts.
+
 ### Runbooks — `docs/runbooks/`, `/runbook` skill
 
 - Operational how-tos: one task per file, exact copy-pasteable commands,
