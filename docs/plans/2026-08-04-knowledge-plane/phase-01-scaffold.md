@@ -45,3 +45,8 @@ real, not stubbed: weighted RRF fusion (unit-tested against known values),
 six-step pipeline with per-step timings, concurrent vector+graph on seed
 flows, ablation via `planes` subset — all verified against in-memory
 protocol fakes. Config fingerprinting stable+sensitive. PR #2.
+
+2026-08-04 — Correction: PR #2 was auto-closed when its stacked base (#1)
+merged with branch deletion; the phase landed as PR #3 (rebased onto main,
+CI green, squash-merged). Incident + recovery documented in
+`docs/runbooks/ci-and-merging.md`.
