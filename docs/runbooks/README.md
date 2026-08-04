@@ -25,3 +25,4 @@ exactly what to type and what they should see.
 |---------|------|
 | [local-dev-loop](local-dev-loop.md) | Clone → verify → branch → PR → merge cycle |
 | [ci-and-merging](ci-and-merging.md) | CI anatomy; merging PRs safely, incl. stacked-PR recovery |
+| [seed-the-dataset](seed-the-dataset.md) | Build/rebuild `data/canonical/` from ml-25m; verify against MANIFEST |

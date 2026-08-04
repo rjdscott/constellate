@@ -216,4 +216,14 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
-data/
+
+# Datasets: raw + canonical parquet stay local; only the manifest is committed
+# (data/* not data/ — an ignored *directory* is never descended into, so the
+# re-include of MANIFEST.json below would silently never match)
+data/*
+!data/canonical/
+data/canonical/*
+!data/canonical/MANIFEST.json
+
+# JetBrains
+.idea/

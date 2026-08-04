@@ -1,0 +1,36 @@
+{
+  "dataset": "ml-25m",
+  "random_seed": 42,
+  "split_cutoff_quantile": 0.95,
+  "config_fingerprint": "b49bb7421c2de02a",
+  "files": {
+    "edges.parquet": {
+      "sha256": "c28d2da627fcc38b2eb2342493e535babacad2efcdf0b7d6801899e041313a2b",
+      "rows": 24606985
+    },
+    "interactions.parquet": {
+      "sha256": "3ade665556bb7e15ee6d26a2c688badfa44cebf5c42a85bc33b43fbf28320227",
+      "rows": 25000095
+    },
+    "item_vectors.parquet": {
+      "sha256": "b17f9b4cae97f47c0e9fc691ddeec734ebe0909b5d4d9ab283e3239ce4368454",
+      "rows": 62423
+    },
+    "items.parquet": {
+      "sha256": "42961ce23ee64301474de9a36ee2ab8735dcce27a316e136d722c90c33e4e58d",
+      "rows": 62423
+    },
+    "probes.parquet": {
+      "sha256": "0187a5e95d01655057d17c57e106ebcf63acdb4e8d67838f821faf82c6dc6461",
+      "rows": 200
+    },
+    "user_vectors.parquet": {
+      "sha256": "0bfe00a3f095fd874387ca2ec900fe62e4569645b76e6e2f283cd6e03ca6b1f6",
+      "rows": 156604
+    },
+    "users.parquet": {
+      "sha256": "aacbdc686164e836cc56ffe770c32e56854674a972f62df71c15914ad7b7e511",
+      "rows": 156604
+    }
+  }
+}

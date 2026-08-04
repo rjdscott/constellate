@@ -11,7 +11,8 @@ Any change to this repo, from a fresh clone to an open PR.
    ```bash
    git clone https://github.com/rjdscott/constellate.git && cd constellate
    uv sync          # creates .venv from uv.lock, Python 3.12
-   make check       # expect: ruff clean, mypy clean, "16 passed, 12 skipped", "doc-check: ok"
+   make check       # expect: ruff clean, mypy clean, "17 passed, 12 skipped", "doc-check: ok"
+   make seed        # first run: ~262MB download + a few min build; see seed-the-dataset.md
    ```
 
    The 12 skips are the conformance suites — they execute but skip until
@@ -60,4 +61,5 @@ next one — `make doc-check` is its deterministic half and runs in CI anyway.
 
 ## Last verified
 
-2026-08-04 — against main at `90eed8b` (post phase-01 doc sweep).
+2026-08-04 — phase 02 (`feat/seed`): test count bumped to 17, `make seed`
+added to setup.

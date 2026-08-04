@@ -106,3 +106,18 @@ checklist (story-quality progress logs, narrative entries, ADRs at forks,
 runbook bumps, ripple staleness) that must pass before any phase flips 🟢.
 Workshop beat: checklists beat memory, and the gate's origin story is the
 audit that motivated it.
+
+## 2026-08-04 — Phase 02: the dataset becomes an artifact
+
+`make seed` now builds the canonical layer every platform ingests: 25M
+interactions temporally split (cutoff ts=1545602470, 95th percentile —
+train on the same past, evaluate on the same future), genome-SVD 256d
+vectors with an honest `has_genome` flag, 24.6M weighted edges, and the
+200-probe graph-necessary set the phase-04 go/no-go will stand on.
+Reproducibility is enforced, not promised: a committed MANIFEST.json of
+file hashes plus a two-run determinism test. Best data-story beat so far:
+cold start and tag coverage are *anticorrelated* — of 29,736 items with
+fewer than 10 train ratings only 125 have genome tags, and the first probe
+build silently dropped the never-rated ones because `groupby().size()`
+can't count to zero. The graph plane's pitch — reaching items the vector
+plane can't see — is exactly the population that's hardest to probe.
