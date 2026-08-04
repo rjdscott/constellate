@@ -1,0 +1,13 @@
+platform: orion
+fusion:
+  rrf_k: 60
+  weights: {vector: 1.0, graph: 1.0}
+retrieval:
+  candidate_multiplier: 5
+  graph_seeds: 10
+  max_hops: 2
+data:
+  split_cutoff_quantile: 0.95
+  embedding_dim: 256
+  random_seed: 42
+engines: {}
