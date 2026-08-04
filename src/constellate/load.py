@@ -121,6 +121,9 @@ def load_lyra(canonical: Path = CANONICAL_DIR, out: Path | None = None) -> None:
 
 def main() -> None:
     platform = sys.argv[1] if len(sys.argv) > 1 else "lyra"
+    rebuild = len(sys.argv) > 2 and sys.argv[2] == "rebuild"
+    if rebuild and platform != "hydra":
+        sys.exit(f"load: {platform!r} has no derived projections — rebuild is hydra-only")
     if platform == "lyra":
         load_lyra()
     elif platform == "orion":
@@ -129,8 +132,14 @@ def main() -> None:
         from constellate.load_orion import load_orion
 
         asyncio.run(load_orion())
+    elif platform == "hydra":
+        import asyncio
+
+        from constellate.load_hydra import load_hydra, rebuild_hydra
+
+        asyncio.run(rebuild_hydra() if rebuild else load_hydra())
     else:
-        sys.exit(f"load: platform {platform!r} lands in a later phase (06: hydra)")
+        sys.exit(f"load: unknown platform {platform!r}")
 
 
 if __name__ == "__main__":

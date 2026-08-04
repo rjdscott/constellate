@@ -13,9 +13,28 @@ conformance fixture):
 from collections.abc import Iterable
 
 from qdrant_client import AsyncQdrantClient
-from qdrant_client.models import Distance, Filter, HasIdCondition, PointStruct, VectorParams
+from qdrant_client.models import (
+    Distance,
+    Filter,
+    HasIdCondition,
+    HnswConfigDiff,
+    OptimizersConfigDiff,
+    PointStruct,
+    SearchParams,
+    VectorParams,
+)
 
 from constellate.core.types import Candidate, ItemId, UserId, Vector
+
+# HNSW parity with the Lyra hnswlib arm and pgvector (M=16, ef_construction=200,
+# ef_search=200). Qdrant's default indexing_threshold (20k per segment) never
+# triggers on ~60k points spread over 8 segments — the collection silently runs
+# brute-force. Lowering it forces a real HNSW build so the bench measures the
+# ANN engine, not accidental exact search.
+M = 16
+EF_CONSTRUCTION = 200
+EF_SEARCH = 200
+INDEXING_THRESHOLD = 1000
 
 
 class QdrantVector:
@@ -36,7 +55,10 @@ class QdrantVector:
         for name in (self._items, self._users):
             if not await self._client.collection_exists(name):
                 await self._client.create_collection(
-                    name, vectors_config=VectorParams(size=self._dim, distance=Distance.DOT)
+                    name,
+                    vectors_config=VectorParams(size=self._dim, distance=Distance.DOT),
+                    hnsw_config=HnswConfigDiff(m=M, ef_construct=EF_CONSTRUCTION),
+                    optimizers_config=OptimizersConfigDiff(indexing_threshold=INDEXING_THRESHOLD),
                 )
 
     async def search(self, vec: Vector, k: int, exclude: set[ItemId]) -> list[Candidate]:
@@ -48,6 +70,7 @@ class QdrantVector:
             query=vec,
             limit=k,
             query_filter=query_filter,
+            search_params=SearchParams(hnsw_ef=EF_SEARCH),
             with_payload=False,
         )
         return [
