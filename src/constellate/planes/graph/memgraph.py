@@ -6,22 +6,57 @@ graph still behaves undirected for expansion (m1 -> tag <- m2 must reach m2).
 One label (configurable), a string `key` holding the prefixed id, one `REL`
 type carrying `edge_type` + `weight`.
 
-Unlike AGE, Memgraph has real variable-length patterns, so stage 1 is a single
-`[:REL*1..H]` match aggregating in-engine with the reference tie-break
-(hops ASC, support DESC, dst ASC) — that ordering is what RRF consumes. Stage 2
-scores the best-weight path at the winner's min hop count, one query per hop
-group; same metadata semantics as the CTE adapter.
+Three planner lessons, all paid for on the 58k-node / 1.68M-edge graph:
 
-Caveat — trail vs walk: Cypher's relationship-uniqueness rule forbids reusing
-the same *directed* relationship twice inside one path, while the CTE adapter's
-self-joins are unrestricted walks. Because edges are doubled, an out-and-back
-step traverses two distinct relationships, so 1- and 2-hop results are
-identical — a 432-case differential against CteGraph (random graphs, multi-seed,
-type filters) matched exactly at max_hops 1-2. At 3 hops a walk that revisits
-one direction of an edge (a->b->a->b) inflates CTE `support` by a few counts
-and can flip a near-tie between two candidates at the same hop count; that hit
-1 of 144 three-hop cases. Service.explain defaults to 2 hops; no conformance
-case exercises 3.
+1. *Anchor with UNWIND + a property map, never `WHERE s.key IN $seeds`.* On the
+   `IN` form Memgraph ignores the `:Node(key)` index entirely — the plan is
+   ScanAll(d) -> Expand into s -> Filter on s.key, reading ~962k edges and
+   burning 65% of its time in that filter (159ms for a *flat 1-hop*, 117ms of it
+   the filter). `UNWIND $seeds AS sk MATCH (s:Node {key: sk})` compiles to
+   ScanAllByLabelPropertyValue per seed and the ScanAll disappears.
+2. *Unroll hops into flat chains; no variable-length patterns.* `[:REL*1..2]`
+   from 10 seeds through genre/tag hubs ran >312s at 100% of one core before it
+   was killed — per-path DFS materialisation on top of the ScanAll above. The
+   equivalent flat chain `(s)-[r1]->(m1)-[r2]->(d)` aggregating in-engine was
+   629ms on the same seeds. So hops are unrolled exactly like the CTE adapter's
+   self-joins (`_hop_sql`), one aggregating branch per hop count.
+3. *One MATCH clause per hop, not one pattern.* Relationship uniqueness is
+   scoped to a single MATCH, so `MATCH (s)-[r1]->(m1) MATCH (m1)-[r2]->(d)` is
+   an unrestricted *walk* — the same semantics as the CTE adapter's self-joins,
+   where a 3-hop path may revisit one direction of an edge. It also deletes the
+   EdgeUniquenessFilter operator (294ms over 2.98M paths on the popular-seed
+   case). Correctness and speed pulled the same way here: the single-pattern
+   form was trail-semantic and diverged from CteGraph on 1 of 144 three-hop
+   cases (a support tie-flip); split clauses make a 432-case differential
+   (random graphs, multi-seed, type filters, 1-3 hops) match CteGraph exactly.
+
+Ranking is the CTE contract reproduced in cte.py's own shape: hop counts are
+unrolled into pre-aggregated `UNION ALL` branches inside one `CALL {}`, then a
+single outer aggregate sums support over every hop length, takes hops = the
+smallest h that reached the node, and orders (hops ASC, support DESC, dst ASC)
+before the LIMIT — support counts paths of all lengths *before* the cut.
+Pre-aggregating inside each branch matters: it hands the union ~50k rows instead
+of ~3M and cut Apply+Union from 682ms to 13ms. Grouping on the node and applying
+the prefix/seed predicates *after* the aggregate (they are predicates on the
+group key, so this is a pure rewrite) keeps two string comparisons off the
+multi-million-row path stream — worth 2324ms -> 1162ms on its own. Intermediate
+nodes stay unconstrained (they may be tags, genres, even seeds); only the final
+node is prefix-filtered and seed-excluded, exactly like cte.py. Stage 2 scores
+the best-weight path at the winner's min hop count, one query per hop group.
+
+What is left is irreducible: expansion through hub nodes. `genre:Drama` alone has
+25,606 edges, so 10 popular seeds legitimately generate 2.98M 2-hop paths and
+`support` is defined as counting all of them. Stage 1 for that worst case is
+~560ms with ~570ms of the profile in Expand + Aggregate; a random 10-seed sample
+is ~195ms and a single seed ~124ms. End-to-end `expand(..., max_hops=2,
+limit=50)` measures 663ms / 201ms / 132ms for those three seed profiles.
+Trimming further means changing the contract, not the query: `support` counts
+every path, and every path has to be walked to be counted.
+
+The same fan-out makes max_hops=3 unusable on hub-heavy seeds — 124s for the
+popular-10 set, since a third hop multiplies 2.98M paths by another hub degree.
+RetrievalRequest defaults to 2 and MAX_HOPS caps at 3; treat 3 as a
+small-seed/typed-edge option, not a default.
 """
 
 import asyncio
@@ -32,7 +67,7 @@ from neo4j import AsyncDriver
 
 from constellate.core.types import Candidate, Edge, ItemId
 
-MAX_HOPS = 3  # service.explain caps at 3; the variable-length match goes no deeper
+MAX_HOPS = 3  # service.explain caps at 3; chains are unrolled no deeper
 
 
 class MemgraphGraph:
@@ -63,6 +98,26 @@ class MemgraphGraph:
             result = await session.run(query, **params)
             return await result.data()
 
+    def _chain(self, hops: int, types: Sequence[str] | None) -> str:
+        """Index-anchored walk of exactly `hops` steps, ending at `d`.
+
+        One MATCH clause per hop on purpose: relationship uniqueness is scoped to
+        a single clause, so splitting them drops the EdgeUniquenessFilter and
+        gives the CTE adapter's unrestricted-walk semantics exactly.
+        """
+        parts = [f"UNWIND $seeds AS sk MATCH (s:{self._label} {{key: sk}})"]
+        prev = "s"
+        for i in range(1, hops + 1):
+            node = "d" if i == hops else f"m{i}"
+            if i > 1:
+                parts.append(f" MATCH ({prev})")
+            parts.append(f"-[r{i}:REL]->({node}:{self._label})")
+            prev = node
+        if types:
+            preds = " AND ".join(f"r{i}.edge_type IN $types" for i in range(1, hops + 1))
+            parts.append(f" WHERE {preds}")
+        return "".join(parts)
+
     async def upsert_edges(self, edges: Iterable[Edge]) -> None:
         rows = [
             {"src": src, "dst": dst, "t": e.edge_type, "w": e.weight}
@@ -89,17 +144,25 @@ class MemgraphGraph:
     ) -> list[Candidate]:
         if not seeds:
             return []
-        hops = min(max_hops, MAX_HOPS)
         seed_nodes = sorted(f"{self._prefix}{s}" for s in seeds)
         types = list(edge_types) if edge_types else None
-        type_pred = " AND all(r IN rs WHERE r.edge_type IN $types)" if types else ""
 
+        # Stage 1 — structural ranking, one query shaped like cte.py's UNION-then-
+        # aggregate-then-LIMIT. Each hop count is a pre-aggregated branch, so the
+        # union carries one row per (dst, h) instead of one per path; the outer
+        # aggregate then sums support over all lengths and takes the shortest hop
+        # count, and only then orders and limits. Grouping on the node and
+        # filtering after the aggregate keeps the two string predicates off the
+        # multi-million-row path stream.
+        hops = min(max_hops, MAX_HOPS)
+        branches = " UNION ALL ".join(
+            f"{self._chain(h, types)} RETURN d, {h} AS h, count(*) AS c" for h in range(1, hops + 1)
+        )
         ranked = await self._run(
-            f"MATCH (s:{self._label})-[rs:REL*1..{hops}]->(d:{self._label})"
-            f" WHERE s.key IN $seeds AND d.key STARTS WITH $prefix"
-            f" AND NOT d.key IN $seeds{type_pred}"
-            f" WITH d.key AS dst, size(rs) AS len"
-            f" RETURN dst, min(len) AS hops, count(*) AS support"
+            f"CALL {{ {branches} }}"
+            f" WITH d, min(h) AS hops, sum(c) AS support"
+            f" WHERE d.key STARTS WITH $prefix AND NOT d.key IN $seeds"
+            f" RETURN d.key AS dst, hops, support"
             f" ORDER BY hops ASC, support DESC, dst ASC LIMIT $limit",
             seeds=seed_nodes,
             prefix=self._prefix,
@@ -109,11 +172,13 @@ class MemgraphGraph:
         if not ranked:
             return []
         order = [r["dst"] for r in ranked]
-        by_hops: dict[int, list[str]] = {}
-        for r in ranked:
-            by_hops.setdefault(r["hops"], []).append(r["dst"])
+        min_hops = {r["dst"]: r["hops"] for r in ranked}
 
+        # Stage 2 — score + explanation: strongest path at the winner's min hops.
         best: dict[str, Candidate] = {}
+        by_hops: dict[int, list[str]] = {}
+        for dst in order:
+            by_hops.setdefault(min_hops[dst], []).append(dst)
         for h, winners in by_hops.items():
             for row in await self._best_paths(seed_nodes, winners, h, types):
                 dst, score = row["dst"], row["w"] / h
@@ -122,42 +187,37 @@ class MemgraphGraph:
                         item_id=int(dst.removeprefix(self._prefix)),
                         score=score,
                         source="graph",
-                        path=_interleave(row["ns"], row["ts"]),
+                        path=[str(p) for p in row["p"]],
                         hops=h,
                     )
-        return [dst_c for dst in order if (dst_c := best.get(dst)) is not None]
+        return [c for dst in order if (c := best.get(dst)) is not None]
 
     async def path_between(self, a: ItemId, b: ItemId, max_hops: int) -> list[str] | None:
         src, dst = f"{self._prefix}{a}", f"{self._prefix}{b}"
         for h in range(1, min(max_hops, MAX_HOPS) + 1):
             rows = await self._best_paths([src], [dst], h, None)
             if rows:
-                return _interleave(rows[0]["ns"], rows[0]["ts"])
+                return [str(p) for p in rows[0]["p"]]
         return None
 
     async def _best_paths(
         self, seed_nodes: list[str], winners: list[str], hops: int, types: list[str] | None
     ) -> list[dict[str, Any]]:
         """One strongest path (by weight product) per winner at exactly `hops`."""
-        type_pred = " AND all(r IN rs WHERE r.edge_type IN $types)" if types else ""
+        match = self._chain(hops, types)
+        joiner = " AND" if types else " WHERE"  # _chain already opened a WHERE for types
+        weight = " * ".join(f"r{i}.weight" for i in range(1, hops + 1))
+        path = ["s.key"]
+        for i in range(1, hops + 1):
+            path.append(f"r{i}.edge_type")
+            path.append("d.key" if i == hops else f"m{i}.key")
         return await self._run(
-            f"MATCH p = (s:{self._label})-[rs:REL*{hops}..{hops}]->(d:{self._label})"
-            f" WHERE s.key IN $seeds AND d.key IN $winners{type_pred}"
-            f" WITH d.key AS dst, s.key AS src,"
-            f" reduce(w = 1.0, r IN rs | w * r.weight) AS w,"
-            f" [n IN nodes(p) | n.key] AS ns, [r IN relationships(p) | r.edge_type] AS ts"
+            f"{match}{joiner} d.key IN $winners"
+            f" WITH d.key AS dst, s.key AS src, {weight} AS w, [{', '.join(path)}] AS p"
             f" ORDER BY w DESC, src ASC"
-            f" WITH dst, collect({{w: w, ns: ns, ts: ts}})[0] AS best"
-            f" RETURN dst, best.w AS w, best.ns AS ns, best.ts AS ts",
+            f" WITH dst, collect({{w: w, p: p}})[0] AS best"
+            f" RETURN dst, best.w AS w, best.p AS p",
             seeds=seed_nodes,
             winners=winners,
             types=types,
         )
-
-
-def _interleave(nodes: list[str], types: list[str]) -> list[str]:
-    """(n0..nh, t1..th) → [n0, t1, n1, t2, n2, ...] path."""
-    path = [nodes[0]]
-    for edge_type, node in zip(types, nodes[1:], strict=True):
-        path.extend((edge_type, node))
-    return path
