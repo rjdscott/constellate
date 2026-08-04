@@ -46,10 +46,17 @@ function readState(params: URLSearchParams): QueryState {
   const planes = planesRaw ? planesRaw.split(',').filter((p): p is PlaneName => ALL_PLANES.includes(p as PlaneName)) : ALL_PLANES
   const platforms = platformsRaw ? platformsRaw.split(',').filter(isPlatformId) : [...PLATFORM_IDS]
 
+  // ids get the same finiteness guard as k/hops: "?seed=abc" is NaN,
+  // "?seed=  " is 0 — both must degrade to "no seed", not auto-run
+  const id = (raw: string | null): number | null => {
+    const parsed = Number(raw)
+    return raw && raw.trim() && Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null
+  }
+
   return {
     mode,
-    seedId: params.get('seed') ? Number(params.get('seed')) : null,
-    userId: params.get('user') ? Number(params.get('user')) : null,
+    seedId: id(params.get('seed')),
+    userId: id(params.get('user')),
     k: Number.isFinite(kRaw) && kRaw > 0 ? clampInt(kRaw, 5, 50) : 20,
     maxHops: HOPS.includes(hopsRaw) ? hopsRaw : 2,
     planes: planes.length > 0 ? planes : ALL_PLANES,

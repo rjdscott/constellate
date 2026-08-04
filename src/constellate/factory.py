@@ -79,19 +79,24 @@ async def _build_orion(cfg: PlatformConfig) -> Service:
         raise ConfigError(
             f"cannot reach orion at {dsn} — run `make up PLATFORM=orion`, then load"
         ) from exc
-    relational = PostgresRelational(pool)
-    vector = PgVector(pool)
-    adapter = str(cfg.engines.get("graph", {}).get("adapter", "cte"))
-    graph: GraphPlane
-    if adapter == "cte":
-        graph = CteGraph(pool)
-    elif adapter == "age":
-        graph = AgeGraph(pool, AGE_GRAPH)
-    else:
+    # same guard as _build_hydra: anything past pool creation that raises would
+    # otherwise leak an un-terminated pool for the process's life
+    try:
+        relational = PostgresRelational(pool)
+        vector = PgVector(pool)
+        adapter = str(cfg.engines.get("graph", {}).get("adapter", "cte"))
+        graph: GraphPlane
+        if adapter == "cte":
+            graph = CteGraph(pool)
+        elif adapter == "age":
+            graph = AgeGraph(pool, AGE_GRAPH)
+        else:
+            raise ConfigError(f"unknown graph adapter {adapter!r} (cte|age)")
+        pipeline = Pipeline(relational, vector, graph, cfg)
+        return Service(pipeline, relational, vector, graph, cfg)
+    except Exception:
         pool.terminate()
-        raise ConfigError(f"unknown graph adapter {adapter!r} (cte|age)")
-    pipeline = Pipeline(relational, vector, graph, cfg)
-    return Service(pipeline, relational, vector, graph, cfg)
+        raise
 
 
 async def _build_hydra(cfg: PlatformConfig) -> Service:

@@ -39,13 +39,13 @@ interface GraphData {
  *  constellation IS the graph of everything the response explained. */
 const ALWAYS_LABELED_RANKS = 8
 
-function buildGraph(
+export function buildGraph(
   seedKey: string,
   recommendationSets: Recommendation[][],
-  itemTitles: Map<number, string>,
-  tagNames: Record<string, string>,
+  itemTitles: Map<number, string> = new Map(),
+  tagNames: Record<string, string> = {},
 ): GraphData {
-  const nodes = new Map<string, { node: PathNode; hop: number }>()
+  const nodes = new Map<string, PathNode>()
   const edges = new Map<string, { source: string; target: string; edgeType: string }>()
   let hasAnyPath = false
 
@@ -61,14 +61,7 @@ function buildGraph(
       const parsed = parsePath(rec.path)
       if (!parsed) continue
       hasAnyPath = true
-      // hop = position along the path, offset by where the path's own root
-      // already sits (expansions start at hop > 0)
-      const base = nodes.get(parsed.nodes[0].key)?.hop ?? 0
-      parsed.nodes.forEach((node, i) => {
-        const hop = base + i
-        const existing = nodes.get(node.key)
-        if (!existing || hop < existing.hop) nodes.set(node.key, { node, hop })
-      })
+      for (const node of parsed.nodes) nodes.set(node.key, node)
       for (let i = 0; i < parsed.edgeTypes.length; i++) {
         const source = parsed.nodes[i].key
         const target = parsed.nodes[i + 1].key
@@ -78,10 +71,31 @@ function buildGraph(
     }
   }
 
+  // hop = shortest distance from the primary response's path roots, relaxed
+  // to a fixpoint over the WHOLE union — a one-pass walk froze descendants
+  // at stale rings when a later expansion found a shortcut to their parent.
+  const hops = new Map<string, number>()
+  for (const rec of recommendationSets[0] ?? []) {
+    const parsed = parsePath(rec.path)
+    if (parsed) hops.set(parsed.nodes[0].key, 0)
+  }
+  let changed = true
+  while (changed) {
+    changed = false
+    for (const edge of edges.values()) {
+      const dist = hops.get(edge.source)
+      if (dist !== undefined && (hops.get(edge.target) ?? Infinity) > dist + 1) {
+        hops.set(edge.target, dist + 1)
+        changed = true
+      }
+    }
+  }
+
   const movieIds: number[] = []
   const tagIds: string[] = []
   const elements: ElementDefinition[] = []
-  for (const { node, hop } of nodes.values()) {
+  for (const node of nodes.values()) {
+    const hop = hops.get(node.key) ?? 0
     if (node.kind === 'movie') movieIds.push(Number(node.id))
     if (node.kind === 'tag') tagIds.push(node.id)
     const label =

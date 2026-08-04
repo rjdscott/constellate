@@ -30,3 +30,4 @@ exactly what to type and what they should see.
 | [run-benchmarks](run-benchmarks.md) | Produce a committed benchmark artifact + report; go/no-go verdict |
 | [run-orion](run-orion.md) | Bring up Orion: container, load, conformance, CTE↔AGE switch, bench |
 | [run-hydra](run-hydra.md) | Bring up Hydra: postgres+qdrant+memgraph, load, rebuild proof, health checks |
+| [run-explorer](run-explorer.md) | Explorer SPA + API: dev loop, production serve, static snapshot, MCP selftest |

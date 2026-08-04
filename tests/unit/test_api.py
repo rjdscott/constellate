@@ -1,6 +1,7 @@
 """API surface over a faked service: routes, validation, response envelope,
 platform registry (ADR 0011)."""
 
+import asyncio
 import json
 from collections.abc import Iterable, Sequence
 from pathlib import Path
@@ -266,3 +267,79 @@ def test_bench_results(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         assert client.get(f"/v1/bench-results/{listing[0]['name']}").json() == artifact
         assert client.get("/v1/bench-results/%2e%2e%2fsecret").status_code == 404
         assert client.get("/v1/bench-results/nope").status_code == 404
+
+
+def test_post_warm_engine_death_is_a_typed_503_and_evicts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A platform that dies AFTER a successful build must degrade to the same
+    503 shape as a build failure, be evicted, and flip /v1/platforms to
+    alive:false (adversarial review 2026-08-05, majors 1+2)."""
+    built: list[Service] = []
+
+    async def fake_build(platform: str) -> Service:
+        service = _service(platform)
+        built.append(service)
+        return service
+
+    monkeypatch.setattr(app_module, "build_service", fake_build)
+    with TestClient(create_app()) as client:
+        assert client.post("/v1/similar", json={"seed_item_id": 1, "k": 2}).status_code == 200
+        assert len(built) == 1
+
+        async def dying(*args: object, **kwargs: object) -> None:
+            raise ConnectionError("pool is closed")
+
+        # engine dies under the warmed service
+        monkeypatch.setattr(built[0]._relational, "hydrate", dying)
+        response = client.post("/v1/similar", json={"seed_item_id": 1, "k": 2})
+        assert response.status_code == 503
+        assert "unavailable" in response.json()["detail"]
+        # eviction: the next request rebuilds rather than reusing the corpse
+        assert client.post("/v1/similar", json={"seed_item_id": 1, "k": 2}).status_code == 200
+        assert len(built) == 2
+        # health() now really probes, so the listing reports a death too
+        monkeypatch.setattr(built[1]._relational, "hydrate", dying)
+        listing = {p["platform"]: p["alive"] for p in client.get("/v1/platforms").json()}
+        assert listing["lyra"] is False
+
+
+def test_double_slash_v1_path_is_not_the_spa_shell(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Raw ASGI call — httpx would parse '//v1/...' as an authority, so a
+    TestClient request can never exercise the duplicate-leading-slash path."""
+    (tmp_path / "index.html").write_text("<html>shell</html>")
+    monkeypatch.setattr(app_module, "UI_DIST_DIR", tmp_path)
+    app = create_app(_service())
+    messages: list[dict[str, object]] = []
+
+    async def receive() -> dict[str, object]:
+        return {"type": "http.request", "body": b"", "more_body": False}
+
+    async def send(message: dict[str, object]) -> None:
+        messages.append(message)
+
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0"},
+        "http_version": "1.1",
+        "method": "GET",
+        "scheme": "http",
+        "path": "//v1/health",
+        "raw_path": b"//v1/health",
+        "query_string": b"",
+        "root_path": "",
+        "headers": [],
+        "client": ("test", 1),
+        "server": ("test", 80),
+    }
+    asyncio.run(app(scope, receive, send))
+    status = next(m["status"] for m in messages if m["type"] == "http.response.start")
+    body = b"".join(
+        m.get("body", b"")
+        for m in messages
+        if m["type"] == "http.response.body"  # type: ignore[misc]
+    )
+    assert status == 404
+    assert b"shell" not in body

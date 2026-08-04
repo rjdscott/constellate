@@ -140,7 +140,7 @@ function ProofStrip() {
           <>
             <span className="text-accent">✦</span> Identical ranking, three engine stacks · R@10{' '}
             <span className="tnum font-mono">0.0965</span> on all four graph engines · hybrid beats
-            vector <span className="tnum font-mono">p = 0.0038</span> · equivalence{' '}
+            vector <span className="tnum font-mono">p = 0.0038</span> (hydra run) · equivalence{' '}
             <span className="tnum font-mono">± 0.02</span>
           </>
         ) : (
