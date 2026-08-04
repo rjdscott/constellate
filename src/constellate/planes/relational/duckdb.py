@@ -15,11 +15,26 @@ instead of silently allowing everything through.
 
 from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 import duckdb
 
 from constellate.core.types import Item, ItemId, UserContext, UserId
 from constellate.planes.relational.policy import filter_by_policy
+
+ITEM_COLS = "item_id, title, year, genres, n_ratings, mean_rating"
+
+
+def _item(r: Any) -> Item:
+    return Item(
+        item_id=r[0],
+        title=r[1],
+        year=r[2],
+        genres=list(r[3] or []),
+        n_ratings=r[4],
+        mean_rating=r[5],
+        popularity=float(r[4]),
+    )
 
 
 class DuckDBRelational:
@@ -61,24 +76,21 @@ class DuckDBRelational:
         if not ids:
             return []
         rows = self._conn.execute(
-            "SELECT item_id, title, year, genres, n_ratings, mean_rating"
-            " FROM items WHERE item_id IN ?",
+            f"SELECT {ITEM_COLS} FROM items WHERE item_id IN ?",
             [list(ids)],
         ).fetchall()
         by_id = {r[0]: r for r in rows}
-        return [
-            Item(
-                item_id=r[0],
-                title=r[1],
-                year=r[2],
-                genres=list(r[3] or []),
-                n_ratings=r[4],
-                mean_rating=r[5],
-                popularity=float(r[4]),
-            )
-            for i in ids
-            if (r := by_id.get(i)) is not None
-        ]
+        return [_item(r) for i in ids if (r := by_id.get(i)) is not None]
+
+    async def search_items(self, q: str, limit: int = 20) -> list[Item]:
+        # contains(), not ILIKE: a '%' typed into the search box is a character,
+        # not a wildcard
+        rows = self._conn.execute(
+            f"SELECT {ITEM_COLS} FROM items WHERE contains(lower(title), lower(?))"
+            " ORDER BY n_ratings DESC, item_id LIMIT ?",
+            [q, limit],
+        ).fetchall()
+        return [_item(r) for r in rows]
 
     async def apply_policy(
         self, ids: Sequence[ItemId], ctx: UserContext | None, policy: dict[str, object]

@@ -27,6 +27,9 @@ class FakeRelational:
     async def hydrate(self, ids: Sequence[ItemId]) -> list[Item]:
         return [Item(item_id=i, title=f"item {i}") for i in ids]
 
+    async def search_items(self, q: str, limit: int = 20) -> list[Item]:
+        raise NotImplementedError
+
     async def apply_policy(
         self, ids: Sequence[ItemId], ctx: UserContext | None, policy: dict[str, object]
     ) -> list[ItemId]:

@@ -29,7 +29,7 @@
 | 04 | [Benchmark harness (go/no-go)](phase-04-harness.md) | 🟢 Completed | 2026-08-04 |
 | 05 | [Orion (unified)](phase-05-orion.md) | 🟢 Completed | 2026-08-04 |
 | 06 | [Hydra (composed)](phase-06-hydra.md) | 🟢 Completed | 2026-08-04 |
-| 07 | [Explorer UI + MCP](phase-07-explorer-and-mcp.md) | 🔵 Not started | 2026-08-04 |
+| 07 | [Explorer UI + MCP](phase-07-explorer-and-mcp.md) | 🟡 In progress | 2026-08-05 |
 | 08 | [Neural arm + final report](phase-08-neural-arm-and-report.md) | 🔵 Not started | 2026-08-04 |
 
 ## Parked experiments (triggered, not scheduled)

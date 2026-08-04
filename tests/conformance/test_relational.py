@@ -21,6 +21,22 @@ async def test_hydrate_preserves_order_and_drops_unknown(relational: RelationalP
     assert [i.item_id for i in items] == KNOWN_ITEMS
 
 
+async def test_search_is_case_insensitive_substring_by_popularity(
+    relational: RelationalPlane,
+) -> None:
+    hits = await relational.search_items("a")
+    assert [i.item_id for i in hits] == [1, 2, 3]  # n_ratings 2, 1, 0
+    assert [i.item_id for i in await relational.search_items("BETA")] == [2]
+    assert await relational.search_items("no such title") == []
+
+
+async def test_search_respects_limit_and_treats_wildcards_literally(
+    relational: RelationalPlane,
+) -> None:
+    assert len(await relational.search_items("a", limit=2)) == 2
+    assert await relational.search_items("%") == []
+
+
 async def test_policy_is_a_hard_gate(relational: RelationalPlane) -> None:
     allowed = await relational.apply_policy(KNOWN_ITEMS, None, {})
     assert set(allowed) <= set(KNOWN_ITEMS)  # never invents items

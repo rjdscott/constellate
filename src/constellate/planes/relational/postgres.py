@@ -17,6 +17,20 @@ import asyncpg
 from constellate.core.types import Item, ItemId, UserContext, UserId
 from constellate.planes.relational.policy import filter_by_policy
 
+ITEM_COLS = "item_id, title, year, genres, n_ratings, mean_rating"
+
+
+def _item(r: asyncpg.Record) -> Item:
+    return Item(
+        item_id=r["item_id"],
+        title=r["title"],
+        year=r["year"],
+        genres=list(r["genres"] or []),
+        n_ratings=r["n_ratings"],
+        mean_rating=r["mean_rating"],
+        popularity=float(r["n_ratings"]),
+    )
+
 
 class PostgresRelational:
     def __init__(self, pool: asyncpg.Pool) -> None:
@@ -35,24 +49,22 @@ class PostgresRelational:
         if not ids:
             return []
         rows = await self._pool.fetch(
-            "SELECT item_id, title, year, genres, n_ratings, mean_rating"
-            " FROM items WHERE item_id = ANY($1::int[])",
+            f"SELECT {ITEM_COLS} FROM items WHERE item_id = ANY($1::int[])",
             list(ids),
         )
         by_id = {r["item_id"]: r for r in rows}
-        return [
-            Item(
-                item_id=r["item_id"],
-                title=r["title"],
-                year=r["year"],
-                genres=list(r["genres"] or []),
-                n_ratings=r["n_ratings"],
-                mean_rating=r["mean_rating"],
-                popularity=float(r["n_ratings"]),
-            )
-            for i in ids
-            if (r := by_id.get(i)) is not None
-        ]
+        return [_item(r) for i in ids if (r := by_id.get(i)) is not None]
+
+    async def search_items(self, q: str, limit: int = 20) -> list[Item]:
+        # strpos(), not ILIKE: a '%' typed into the search box is a character,
+        # not a wildcard
+        rows = await self._pool.fetch(
+            f"SELECT {ITEM_COLS} FROM items WHERE strpos(lower(title), lower($1)) > 0"
+            " ORDER BY n_ratings DESC, item_id LIMIT $2",
+            q,
+            limit,
+        )
+        return [_item(r) for r in rows]
 
     async def apply_policy(
         self, ids: Sequence[ItemId], ctx: UserContext | None, policy: dict[str, object]
