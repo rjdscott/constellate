@@ -66,3 +66,24 @@ make bench PLATFORM=orion && make report   # quality within tolerance of Lyra; C
   explanations tie-break differently on equal-weight paths (Adventure vs
   Sci-Fi genre hop to the same item). `build_service` went async (asyncpg
   pool); CI now builds the orion image and runs conformance against it.
+- 2026-08-04 — **CTE-arm bench**: ablation gate re-confirmed (hybrid vs
+  vector_only R@10 +0.0267, p=4.1e-06); **graph_only identical to Lyra to
+  4 decimals on every metric and kind** — the abstraction holds exactly
+  where the contract promises; vector_only halves (pgvector HNSW/halfvec
+  recall vs faiss exact, concentrated on cold_start) yet hybrid lands
+  within tolerance (+0.0021 R@10). Latency upset: Orion ~3× *faster* than
+  Lyra (p50 43 ms vs 127 ms) and the 1.2× "saturation" run didn't
+  saturate — separate-process Postgres serves concurrently; the embedded
+  ceiling was the single process, not the missing network hop.
+- 2026-08-04 — **Independent review: 2 major, 5 minor — all fixed.**
+  Majors: load steps weren't atomic with their manifest marks (crash +
+  rerun would silently duplicate COPYed interactions — "idempotent" was
+  false under failure; now one transaction per step) and CI could go
+  green with orion conformance silently deregistered (socket-only init
+  server can fool `pg_isready`; healthcheck now forces TCP and
+  ORION_REQUIRED=1 makes the probe raise in CI). Minors: dollar-quote
+  breakout guard in AGE cypher, factory timeout/pool-leak handling,
+  conformance pool teardown, DSNs stripped from committed artifacts,
+  unused pgvector dep dropped, "mirrors kuzu exactly" docstrings scoped
+  to ranking equivalence. AGE-arm bench (2,000 latency samples,
+  disclosed) running.
