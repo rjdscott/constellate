@@ -302,6 +302,7 @@ async def run_bench(platform: str, *, samples: int, warmup: int, skip_latency: b
 
     artifact: dict[str, Any] = {
         "platform": platform,
+        "engines": cfg.engines,  # which adapters this run measured (e.g. cte vs age)
         "git_sha": _git_sha(),
         "utc": datetime.now(UTC).isoformat(timespec="seconds"),
         "config_fingerprint": cfg.fingerprint(),

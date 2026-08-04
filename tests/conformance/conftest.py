@@ -40,7 +40,11 @@ ORION_DSN = os.environ.get(
 def _orion_reachable() -> bool:
     async def probe() -> None:
         conn = await asyncpg.connect(ORION_DSN, timeout=3)
-        await conn.close()
+        try:  # bootstrap fresh volumes/CI: types must exist before TEMP tables use them
+            await conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
+            await conn.execute("CREATE EXTENSION IF NOT EXISTS age")
+        finally:
+            await conn.close()
 
     try:
         asyncio.run(probe())
