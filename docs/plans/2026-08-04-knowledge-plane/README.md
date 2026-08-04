@@ -23,7 +23,7 @@
 
 | NN | Phase | Status | Last update |
 |----|-------|--------|-------------|
-| 01 | [Scaffold](phase-01-scaffold.md) | 🔵 Not started | 2026-08-04 |
+| 01 | [Scaffold](phase-01-scaffold.md) | 🟢 Completed | 2026-08-04 |
 | 02 | [Data & probes](phase-02-data-and-probes.md) | 🔵 Not started | 2026-08-04 |
 | 03 | [Lyra (embedded) end-to-end](phase-03-lyra.md) | 🔵 Not started | 2026-08-04 |
 | 04 | [Benchmark harness (go/no-go)](phase-04-harness.md) | 🔵 Not started | 2026-08-04 |
@@ -43,10 +43,10 @@ adapters) is retained.
 
 ## Critical files (once built)
 
-- `src/kp/core/` — types, protocols, pipeline, fusion (engine types never
+- `src/constellate/core/` — types, protocols, pipeline, fusion (engine types never
   escape a plane module; wiring in one factory)
-- `src/kp/planes/` — one directory per plane, one module per adapter
-- `src/kp/service.py` — shared service layer (REST routes and MCP tools both
+- `src/constellate/planes/` — one directory per plane, one module per adapter
+- `src/constellate/service.py` — shared service layer (REST routes and MCP tools both
   call it)
 - `bench/` — harness, probes, results JSON artifacts (committed)
 - `compose/` + `docker/` — Orion and Hydra definitions
