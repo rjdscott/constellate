@@ -275,3 +275,29 @@ docs/research/2026-08-04-knowledge-plane-foundations/assets/ (PR D
 captures).
 **Post angle:** "My AI built a competent UI. Making it beautiful took a
 design constitution it could be reviewed against."
+
+## L13 — A health check that does no I/O is a status page, not a probe (phase 07)
+
+**What happened:** `/v1/platforms` reported per-platform liveness, and
+its `Service.health()` just formatted already-known config into a dict —
+zero engine I/O. Building the service was the only real probe, and it
+ran once, cached forever. The adversarial review killed a warmed
+platform's pool and watched the API keep answering `alive: true` with a
+straight face; the same gap meant post-warm engine deaths surfaced as
+raw 500s instead of the typed 503 ADR 0011 promised. Third phase in a
+row where review's biggest catch was verification that could not fail
+(L7's discarded bench, L10's tautological count check, now this).
+**Principle:** liveness must cost something on every call. If the
+health path can return "ok" while the engine is unplugged, it is not
+health — it is a cached opinion.
+**Do differently:** when writing any is-it-alive surface, write the
+kill test first: stop the engine under a warmed client and assert the
+status flips. It is one monkeypatch in a unit test.
+**For builders:** the fix pattern is probe + evict: health does one
+cheap real operation per dependency, and any failure evicts the cached
+client so the next request rebuilds — detection and self-healing from
+the same code path.
+**Evidence:** adversarial review 2026-08-05 (majors 1–2);
+`tests/unit/test_api.py::test_post_warm_engine_death_is_a_typed_503_and_evicts`;
+`Service.health()` per-plane point lookups.
+**Post angle:** "My health check had 100% uptime. That was the bug."

@@ -244,3 +244,29 @@ latency source. Design direction locked the same day: the Observatory
 identity (celestial dark-first, restrained instrument-grade execution —
 the explanation graphs render as constellations because the project is
 named Constellate) with a cinematic overview as the app's entry surface.
+
+## 2026-08-05 — Phase 07: the project gets a face (explorer SPA + MCP)
+
+Five PRs (#13–#17 + close) turned the benchmark into a product surface.
+ADR 0011 first: one API process serving every platform through a lazy
+registry, because the playground's side-by-side comparison needs one
+origin — with the standing commitment that the open-loop harness stays
+the only citable latency source. Then the Observatory design system,
+authored before any component (WCAG- and CVD-validated palette, seven
+enforceable taste rules) — and immediately stress-tested by the phase's
+defining event: the first agent-built UI came back competent and generic
+("vibecoded" — Rob), and three rounds of design direction produced the
+real thing: a full-bleed star-atlas overview whose stat cards were
+replaced by a live proof strip (one graph-arm query, three platforms,
+identical top-3 landing side by side — the thesis demonstrated, not
+asserted), a playground with URL-shareable state and cross-pane
+consensus markers, constellations drawn as concentric star charts with
+tag-bridge nodes and expand-by-retrieval, and Observable Plot dashboards
+reading the committed artifacts (lesson L12: taste is a spec you
+enforce). The MCP server closed the loop ADR 0008 opened: three curated
+tools over the same service layer, selftested against live engines. The
+adversarial review kept its streak — its majors were again proof
+machinery (a health check with no I/O that could never see a platform
+die; L13) — fixed with probe-plus-evict and a kill test. Artifacts:
+`ui/`, `src/constellate/mcp_server.py`, screenshots in `assets/`,
+snapshot build serving the whole bench story from static files.

@@ -3,6 +3,7 @@ pipeline or adapters directly. Owns response enrichment (titles into
 recommendation metadata) so every surface explains itself the same way.
 """
 
+import asyncio
 import csv
 import json
 from collections.abc import Sequence
@@ -91,6 +92,15 @@ class Service:
         return await self._graph.path_between(a, b, max_hops)
 
     async def health(self) -> dict[str, str]:
+        # Real per-plane probes (one point lookup each), not config formatting.
+        # A platform whose engine dies after boot must stop answering "alive"
+        # (adversarial review 2026-08-05: a pure-formatting health() made
+        # /v1/platforms a one-time probe that could never detect death).
+        await asyncio.gather(
+            self._relational.hydrate([1]),
+            self._vector.get_item_vector(1),
+            self._graph.path_between(1, 1, 1),
+        )
         return {
             "status": "ok",
             "platform": self._config.platform,

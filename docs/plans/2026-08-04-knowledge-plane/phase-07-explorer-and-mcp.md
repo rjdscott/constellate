@@ -104,8 +104,9 @@ content in `docs/research/2026-08-04-knowledge-plane-foundations/assets/`.
   `lib/` silently hiding ui/src/lib (anchored); Radix asChild
   string-merges className, stringifying NavLink's function prop (active
   state moved to useLocation).
-- 2026-08-05 — PR B landed: `ui/` scaffold + Observatory tokens wired + app
-  shell + the overview page. Vite 8 / React 19 / TS 6 strict / pnpm 9;
+- 2026-08-05 — PR B implementation notes (same landing as the entry above;
+  duplicate header fixed during phase close): `ui/` scaffold + Observatory
+  tokens wired + app shell + the overview page. Vite 8 / React 19 / TS 6 strict / pnpm 9;
   Tailwind v4 is configured CSS-first — the authored `@theme inline` block in
   `src/design/tokens.css` *is* the config, no `tailwind.config` file. Token
   layering works because `tokens.css` is imported unlayered after
@@ -262,3 +263,25 @@ content in `docs/research/2026-08-04-knowledge-plane-foundations/assets/`.
   `--selftest [platforms]` drives every tool through the in-process FastMCP
   client against real engines: lyra + hydra 6/6 ok. `.mcp.json` committed
   for interactive Claude Code use.
+- 2026-08-05 — Independent adversarial review (Sonnet, fresh context, live
+  probes + reproduction scripts): 2 major, 5 minor, 1 nit; MCP error
+  survival, traversal guards, snapshot/live parity, path vocabulary, and
+  cross-pane identity all attacked and found sound. The majors were one
+  root cause and — for the third phase running — proof machinery:
+  `Service.health()` did no I/O, so "alive" was a one-time build probe
+  that could never detect a platform dying post-warm, and post-warm engine
+  failures leaked as raw 500s instead of ADR 0011's typed per-platform
+  degradation. Fixed: health() now runs real per-plane point lookups;
+  every data route runs inside a `scoped()` guard that converts engine
+  failures to typed 503s AND evicts the broken service so the next request
+  rebuilds it (self-healing the review proved impossible before). Minors
+  fixed: `//v1/*` no longer falls through to the SPA shell (regression
+  test calls raw ASGI — httpx can't even send that path); `_build_orion`
+  got `_build_hydra`'s pool-leak guard; constellation hops recomputed
+  BFS-to-fixpoint over the union (a later shortcut re-rings already-placed
+  descendants; vitest added with the exact multi-expansion scenario);
+  malformed `?seed=`/`?user=` params degrade to no-selection instead of
+  auto-running NaN; the overview's p-value labeled "(hydra run)" (R@10 is
+  platform-identical, the p-value never was). Unit suite 19, vitest 12.
+  Screenshots for talk assets captured to research assets/ (overview,
+  three-pane playground, constellation fullscreen, bench dashboards).

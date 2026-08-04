@@ -68,7 +68,10 @@ class SPAStaticFiles(StaticFiles):
             # A malformed /v1/* path (e.g. a traversal attempt normalized down
             # to something no route matches) must still 404, not silently
             # become the SPA shell — only genuine SPA routes fall back.
-            request_path = str(scope["path"])
+            # collapse duplicate leading slashes: Starlette won't route
+            # "//v1/health" to the API, and the raw path wouldn't match the
+            # "/v1/" prefix either — the SPA shell must not answer for it
+            request_path = "/" + str(scope["path"]).lstrip("/")
             is_api_path = request_path == "/v1" or request_path.startswith("/v1/")
             if exc.status_code == 404 and not is_api_path:
                 return await super().get_response("index.html", scope)
@@ -105,19 +108,30 @@ def create_app(service: Service | None = None) -> FastAPI:
                 services[platform] = await build_service(platform)
             return services[platform]
 
-    async def svc(platform: str | None) -> Service:
+    @asynccontextmanager
+    async def scoped(platform: str | None) -> AsyncIterator[Service]:
+        """Resolve, warm, and guard one platform for one request. Any engine
+        failure — at build time or after (a pool dying under a warmed service)
+        — becomes a typed 503 and evicts the broken service so the next
+        request rebuilds it (ADR 0011: clear per-platform degradation)."""
         name = platform or default_platform
         if name not in PLATFORMS:
             raise HTTPException(404, f"unknown platform {name!r} (have: {', '.join(PLATFORMS)})")
         try:
-            return await warm(name)
+            yield await warm(name)
+        except HTTPException:
+            raise
         except Exception as exc:  # engines down, artifacts missing, bad config
+            if broken := services.pop(name, None):
+                broken.close()
             raise HTTPException(503, f"platform {name!r} unavailable: {exc}") from exc
 
     @app.get("/v1/platforms")
     async def platforms() -> list[dict[str, object]]:
-        """Liveness per platform — building the service is the probe: it opens
-        the pools and reads the artifacts, which is what "alive" has to mean."""
+        """Liveness per platform: build (pools + artifacts) on first call, then
+        Service.health()'s real per-plane point lookups on every call — a
+        platform whose engine dies after warming flips to alive:false and is
+        evicted so the next call retries the build."""
         out: list[dict[str, object]] = []
         for name in PLATFORMS:
             try:
@@ -142,24 +156,26 @@ def create_app(service: Service | None = None) -> FastAPI:
     ) -> RetrievalResponse:
         if request.user_id is None and request.seed_item_id is None:
             raise HTTPException(422, "user_id or seed_item_id required")
-        return await (await svc(platform)).recommend(request)
+        async with scoped(platform) as service:
+            return await service.recommend(request)
 
     @app.post("/v1/similar")
     async def similar(request: SimilarRequest, platform: str | None = None) -> RetrievalResponse:
-        return await (await svc(platform)).similar(
-            request.seed_item_id, k=request.k, explain=request.explain
-        )
+        async with scoped(platform) as service:
+            return await service.similar(request.seed_item_id, k=request.k, explain=request.explain)
 
     @app.post("/v1/explain")
     async def explain(request: ExplainRequest, platform: str | None = None) -> dict[str, object]:
-        path = await (await svc(platform)).explain(request.a, request.b, request.max_hops)
+        async with scoped(platform) as service:
+            path = await service.explain(request.a, request.b, request.max_hops)
         return {"a": request.a, "b": request.b, "path": path}
 
     @app.get("/v1/search/items")
     async def search_items(
         q: str = Query(min_length=1), limit: int = 20, platform: str | None = None
     ) -> list[Item]:
-        return await (await svc(platform)).search_items(q, limit)
+        async with scoped(platform) as service:
+            return await service.search_items(q, limit)
 
     @app.get("/v1/items")
     async def items(ids: str = Query(min_length=1), platform: str | None = None) -> list[Item]:
@@ -169,7 +185,8 @@ def create_app(service: Service | None = None) -> FastAPI:
             raise HTTPException(422, "ids must be a comma-separated list of integers") from exc
         if not parsed:
             raise HTTPException(422, "ids must be a comma-separated list of integers")
-        return await (await svc(platform)).hydrate(parsed)
+        async with scoped(platform) as service:
+            return await service.hydrate(parsed)
 
     @app.get("/v1/tags")
     async def tags() -> dict[str, str]:
@@ -180,18 +197,21 @@ def create_app(service: Service | None = None) -> FastAPI:
 
     @app.get("/v1/users/{user_id}")
     async def user(user_id: UserId, platform: str | None = None) -> UserContext:
-        ctx = await (await svc(platform)).user_context(user_id)
+        async with scoped(platform) as service:
+            ctx = await service.user_context(user_id)
         if ctx.n_ratings == 0:  # adapters return an empty context for unknown users
             raise HTTPException(404, f"no ratings for user {user_id}")
         return ctx
 
     @app.get("/v1/health")
     async def health(platform: str | None = None) -> dict[str, str]:
-        return await (await svc(platform)).health()
+        async with scoped(platform) as service:
+            return await service.health()
 
     @app.get("/v1/stats")
     async def stats(platform: str | None = None) -> dict[str, object]:
-        return await (await svc(platform)).stats()
+        async with scoped(platform) as service:
+            return await service.stats()
 
     @app.get("/v1/bench-results")
     async def bench_results() -> list[dict[str, object]]:
