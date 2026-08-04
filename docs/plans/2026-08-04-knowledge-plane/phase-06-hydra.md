@@ -19,8 +19,8 @@ shows latency + footprint deltas (this platform's numbers are the quotable ones)
   path here (progress log 2026-08-04, lesson L11); implemented as
   UNWIND-anchored unrolled chains matching the CTE ranking contract instead.
 - [x] `make load PLATFORM=hydra`; `make rebuild PLATFORM=hydra` (relational → projections)
-- [ ] Bench at concurrency 1/8/32; ops metrics (ingest/rebuild wall time, container count, peak RSS, on-disk size)
-- [ ] Cross-platform report: Lyra vs Orion vs Hydra quality equivalence + latency/footprint table
+- [x] Bench at concurrency 1/8/32; ops metrics (ingest/rebuild wall time, container count, peak RSS, on-disk size)
+- [x] Cross-platform report: Lyra vs Orion vs Hydra quality equivalence + latency/footprint table
 
 ## Verification
 
@@ -69,3 +69,14 @@ make bench PLATFORM=hydra && make report
   moves `bench.quality_tolerance` out of `engines`, so orion/hydra
   config fingerprints change vs the committed phase-05 artifacts —
   intended; old artifacts remain valid snapshots of their configs.
+- 2026-08-04 — All review fixes landed (0b36d7c: real qdrant count
+  verification, HNSW index barrier, artifact engine_state, leak-proofing,
+  committed parity test — 48 conformance green). Clean bench:
+  `hydra-0b36d7c-20260804T134236Z` — GO (hybrid vs vector p=0.0038);
+  graph_only R@10 0.0965 identical to all prior engines to 4 decimals;
+  equivalence gate within ±0.02 of Lyra (−0.0017 R@10); p50 115ms flat
+  at concurrency 1/8/32, sustained 11.6Hz (1.2× estimated capacity)
+  without saturating. Determinism note: unseeded multi-threaded qdrant
+  HNSW build shifts vector metrics slightly between rebuilds
+  (nDCG@10 0.0353→0.0337) — an L9 boundary lyra's seeded hnswlib build
+  doesn't have; equivalence gate unaffected.

@@ -139,6 +139,20 @@ latency reruns are free.
 **Post angle:** "Make your benchmark boring so your findings can be
 interesting."
 
+*Boundary found, phase 06 (2026-08-04):* server-side ANN index builds are
+where the determinism guarantee ends. Qdrant's HNSW build is
+multi-threaded and unseeded, so every `make rebuild PLATFORM=hydra`
+produces a slightly different index — two otherwise-identical bench runs
+measured nDCG@10 0.0353 vs 0.0337 on the vector arm. Lyra never had this
+because its hnswlib build is single-threaded and seeded (a knob we
+controlled in-process; a server engine doesn't offer it). Consequence:
+Hydra quality metrics are *tolerance-reproducible*, not
+byte-reproducible; the ±0.02 equivalence gate absorbs it, and the
+artifact records the exact index state (`engine_state`) so any drift is
+attributable. For builders: when the index lives in someone else's
+daemon, replace "byte-identical" claims with a stated tolerance and
+record what the engine reports about its own index.
+
 ## L10 — ANN engines fail open to brute force; verify the index exists (phase 06)
 
 2026-08-04. Qdrant accepted 62,423 item vectors, answered every query
