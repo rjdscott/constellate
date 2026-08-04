@@ -242,3 +242,36 @@ not planner: 10 hub-heavy seeds legitimately generate 2.98M two-hop
 paths (`genre:Drama` = 25,606 edges) and the support contract counts
 all of them — 663ms e2e worst-case vs Postgres CTE's 43ms on identical
 semantics remains the honest cross-engine delta to explain on stage.
+
+## L12 — Taste is a spec you enforce, not a property that emerges (phase 07)
+
+**What happened:** the explorer shell's first pass was built by a
+subagent against a written design system (tokens, taste rules, layout
+guidance) and came back structurally excellent and visually generic —
+Rob's verdict: "vibecoded." Boxed starfield in a rounded card, three
+equal-weight stat cards, centered everything, clip-art star glyphs.
+Three rounds of direction followed: full-bleed star-atlas composition
+with the statement lower-left; bare metrics replaced with a live proof
+strip (same graph query fired at all three platforms, identical top-3
+landing side by side with real latencies); the serif display face
+retired for medium-weight Inter; em-dashes and prose stripped from
+copy.
+**Principle:** competent execution converges to the median of its
+training set. Design excellence has to be authored: concrete
+compositions, named anti-patterns, and rules a reviewer can point at —
+"dark-first, both themes" is a constraint; "no boxed atmosphere, rules
+over cards" is taste made enforceable.
+**Do differently:** write the anti-patterns into the design doc before
+the first component, not after the first rejection; put a screenshot
+review (human or model, both themes) inside the loop for every UI PR,
+not at phase end.
+**For builders:** "make it beautiful" in a prompt buys nothing; a
+design README with vetoes does. And the strongest de-vibecoding move is
+substitution, not decoration — replace the stat card with the thing the
+stat measures, demonstrated live.
+**Evidence:** ui/src/design/README.md taste rules 5–7 (added from this
+round); phase-07 progress log 2026-08-05; before/after screenshots in
+docs/research/2026-08-04-knowledge-plane-foundations/assets/ (PR D
+captures).
+**Post angle:** "My AI built a competent UI. Making it beautiful took a
+design constitution it could be reviewed against."
