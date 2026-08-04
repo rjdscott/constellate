@@ -8,7 +8,7 @@ from collections.abc import Awaitable, Callable
 
 import pytest
 
-from kp.core.protocol import GraphPlane, RelationalPlane, VectorPlane
+from constellate.core.protocol import GraphPlane, RelationalPlane, VectorPlane
 
 # name -> async factory returning a loaded adapter (registered in phase 03+)
 RELATIONAL_ADAPTERS: dict[str, Callable[[], Awaitable[RelationalPlane]]] = {}

@@ -1,5 +1,16 @@
 # Knowledge Plane: project prep spec
 
+> **Status (2026-08-04): historical sketch, superseded.** Live decisions are
+> the ADRs in `docs/adr/` (grounded in
+> `docs/research/2026-08-04-knowledge-plane-foundations/`); execution follows
+> `docs/plans/2026-08-04-knowledge-plane/`. Key departures: platforms are
+> named Lyra/Orion/Hydra/Eridanus (ADR 0009, not tier0/lite/mid/ent); Hydra's
+> graph engine is Memgraph (ADR 0005, not FalkorDB); Lyra's vector plane is
+> exact-flat-first (ADR 0002); Kuzu is pinned at 0.11.3 (archived upstream,
+> ADR 0003); a production-grade explorer UI is in scope (ADR 0007, reversing
+> §1's "do not implement a UI"); package is `src/constellate/` (ADR 0010).
+> The core contract (§4–5) and benchmark shape (§8) remain the foundation.
+
 Build spec for an open source recommendation framework backed by three retrieval planes
 (relational, vector, graph) behind a single API. Written for Claude Code. Read fully before
 scaffolding.
@@ -47,7 +58,7 @@ constellate/
     lite/Dockerfile          # postgres 16 + pgvector + apache age
   config/
     tier0.yaml  lite.yaml  mid.yaml  ent.yaml
-  src/kp/
+  src/constellate/
     api/          app.py  routes.py  schemas.py
     core/         protocol.py  types.py  pipeline.py  fusion.py  policy.py  errors.py
     planes/
@@ -351,7 +362,7 @@ Purpose is learning with a scoreboard, not a rewrite. The API is I/O bound so a 
 little. The fusion and reranking kernel is CPU-bound over a few thousand candidates and is a clean,
 bounded target.
 
-- `rust/kp-fusion/`: RRF plus reranking plus diversity (MMR) as a `pyo3` extension
+- `rust/constellate-fusion/`: RRF plus reranking plus diversity (MMR) as a `pyo3` extension
 - Exposes exactly the same signature as `core/fusion.py`, selected by config flag `fusion.impl: rust|python`
 - Must pass the identical fusion unit tests
 - `make bench` records which implementation ran, so the two are directly comparable

@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from kp.config import CONFIG_DIR, load_config
-from kp.core.errors import ConfigError
+from constellate.config import CONFIG_DIR, load_config
+from constellate.core.errors import ConfigError
 
 
 @pytest.mark.parametrize("platform", ["lyra", "orion", "hydra"])

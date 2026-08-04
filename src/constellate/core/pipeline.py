@@ -14,11 +14,11 @@ import asyncio
 import time
 from collections.abc import Sequence
 
-from kp.config import PlatformConfig
-from kp.core.errors import SeedResolutionError
-from kp.core.fusion import rrf
-from kp.core.protocol import GraphPlane, RelationalPlane, VectorPlane
-from kp.core.types import (
+from constellate.config import PlatformConfig
+from constellate.core.errors import SeedResolutionError
+from constellate.core.fusion import rrf
+from constellate.core.protocol import GraphPlane, RelationalPlane, VectorPlane
+from constellate.core.types import (
     Candidate,
     ItemId,
     PlaneName,

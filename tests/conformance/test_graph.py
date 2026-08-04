@@ -1,7 +1,7 @@
 """Graph plane contract: any adapter (Kuzu, CTE, AGE, Memgraph) passes unchanged."""
 
-from kp.core.protocol import GraphPlane
-from kp.core.types import Edge
+from constellate.core.protocol import GraphPlane
+from constellate.core.types import Edge
 
 
 async def _seed(graph: GraphPlane) -> None:

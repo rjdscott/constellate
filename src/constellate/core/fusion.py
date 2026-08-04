@@ -2,7 +2,7 @@
 
 from collections.abc import Mapping, Sequence
 
-from kp.core.types import Candidate, ItemId, PlaneName
+from constellate.core.types import Candidate, ItemId, PlaneName
 
 
 class FusedCandidate:

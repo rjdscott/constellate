@@ -8,7 +8,7 @@ from typing import Literal
 import yaml
 from pydantic import BaseModel, Field
 
-from kp.core.errors import ConfigError
+from constellate.core.errors import ConfigError
 
 Platform = Literal["lyra", "orion", "hydra", "eridanus"]
 

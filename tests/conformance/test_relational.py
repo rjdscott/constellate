@@ -4,7 +4,7 @@ Adapters are constructed pre-loaded with the shared conformance dataset
 (defined alongside adapter registration in phase 03).
 """
 
-from kp.core.protocol import RelationalPlane
+from constellate.core.protocol import RelationalPlane
 
 KNOWN_USER = 1
 KNOWN_ITEMS = [1, 2, 3]

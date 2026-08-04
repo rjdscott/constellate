@@ -1,6 +1,6 @@
 """Vector plane contract: any adapter (flat, hnswlib, pgvector, qdrant) passes unchanged."""
 
-from kp.core.protocol import VectorPlane
+from constellate.core.protocol import VectorPlane
 
 DIM = 4
 

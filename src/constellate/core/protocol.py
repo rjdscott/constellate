@@ -3,7 +3,7 @@
 from collections.abc import Iterable, Sequence
 from typing import Protocol
 
-from kp.core.types import Candidate, Edge, Item, ItemId, UserContext, UserId, Vector
+from constellate.core.types import Candidate, Edge, Item, ItemId, UserContext, UserId, Vector
 
 
 class RelationalPlane(Protocol):

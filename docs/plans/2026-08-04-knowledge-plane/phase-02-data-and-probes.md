@@ -24,13 +24,13 @@ generated at all) surfaces here.
 ```
 make seed && make seed          # second run is a fast no-op
 uv run pytest tests/unit/test_canonical.py -k determinism
-uv run python -m kp.ingest.stats   # row counts, split sizes, probe counts printed
+uv run python -m constellate.ingest.stats   # row counts, split sizes, probe counts printed
 ```
 
 ## Artifacts
 
 `data/canonical/*.parquet` (gitignored; hashes recorded in
-`data/canonical/MANIFEST.json` which IS committed), `src/kp/ingest/*`,
+`data/canonical/MANIFEST.json` which IS committed), `src/constellate/ingest/*`,
 `bench/probes.py`.
 
 ## Progress log

@@ -25,13 +25,13 @@ end to end from a fresh clone: `make seed load bench-smoke PLATFORM=lyra`.
 ```
 make check
 make load PLATFORM=lyra && uv run pytest tests/conformance -k "duckdb or flat or hnsw or kuzu"
-uv run uvicorn kp.api.app:app &  # then:
+uv run uvicorn constellate.api.app:app &  # then:
 curl -s localhost:8000/v1/similar -d '{"seed_item_id":318,"k":10,"explain":true}' | jq .[0].reason
 ```
 
 ## Artifacts
 
-`src/kp/planes/{relational,vector,graph}/*`, `src/kp/service.py`,
-`src/kp/api/*`, `data/lyra/` index files, passing conformance suite.
+`src/constellate/planes/{relational,vector,graph}/*`, `src/constellate/service.py`,
+`src/constellate/api/*`, `data/lyra/` index files, passing conformance suite.
 
 ## Progress log
