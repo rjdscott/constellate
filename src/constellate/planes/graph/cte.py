@@ -7,11 +7,14 @@ weight)` so each hop is index-only. Research 03: at 2-3 hops explicit
 self-joins beat the recursive executor and keep the plan visible — so hops
 are unrolled, not recursed.
 
-Two-stage expansion mirrors the Kuzu adapter exactly (quality equivalence
-across platforms is the phase-05 gate): stage 1 aggregates (candidate,
-min-hops, path support) in-engine; stage 2 fetches one best path per winner
-for the score (weight product / hops) and the explanation. Notably absent:
-the literal-inlining contortions the Kuzu planner forced — Postgres pushes
+Two-stage expansion mirrors the Kuzu adapter's *ranking* exactly (stage 1
+aggregates candidate/min-hops/support in-engine with the same tie-break —
+that ordering is what RRF consumes, so retrieval quality is equivalent;
+the phase-05 gate measured it identical to 4 decimals). Stage-2 metadata
+(score/path) can differ from kuzu with multiple seeds: kuzu scores one
+SHORTEST path per (seed, winner) pair, this adapter scores the best-weight
+path at the winner's global min hop count. Notably absent: the
+literal-inlining contortions the Kuzu planner forced — Postgres pushes
 `$n` parameters into every plan without drama.
 """
 

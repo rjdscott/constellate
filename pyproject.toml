@@ -22,7 +22,6 @@ dependencies = [
     "hdrhistogram>=0.10.7",
     "ranx>=0.3.21",
     "asyncpg>=0.31.0",
-    "pgvector>=0.5.0",
 ]
 
 [dependency-groups]

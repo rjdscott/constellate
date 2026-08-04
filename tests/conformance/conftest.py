@@ -14,7 +14,7 @@ on the next run.
 import asyncio
 import os
 import uuid
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
 
 import asyncpg
 import duckdb
@@ -50,6 +50,10 @@ def _orion_reachable() -> bool:
         asyncio.run(probe())
         return True
     except Exception:
+        # ORION_REQUIRED=1 (CI) turns silent deregistration into a hard fail:
+        # a green suite must never mean "the orion container quietly died"
+        if os.environ.get("ORION_REQUIRED"):
+            raise
         return False
 
 
@@ -184,19 +188,28 @@ def _params(registry: dict[str, Callable[[], Awaitable[object]]]) -> list[object
     return [pytest.param(factory, id=name) for name, factory in registry.items()] or [_SKIP]
 
 
+async def _teardown(plane: object) -> None:
+    pool = getattr(plane, "_pool", None)  # orion adapters: close the test's pool
+    if isinstance(pool, asyncpg.Pool):
+        pool.terminate()
+
+
 @pytest.fixture(params=_params(RELATIONAL_ADAPTERS))
-async def relational(request: pytest.FixtureRequest) -> RelationalPlane:
+async def relational(request: pytest.FixtureRequest) -> AsyncIterator[RelationalPlane]:
     plane: RelationalPlane = await request.param()
-    return plane
+    yield plane
+    await _teardown(plane)
 
 
 @pytest.fixture(params=_params(VECTOR_ADAPTERS))
-async def vector(request: pytest.FixtureRequest) -> VectorPlane:
+async def vector(request: pytest.FixtureRequest) -> AsyncIterator[VectorPlane]:
     plane: VectorPlane = await request.param()
-    return plane
+    yield plane
+    await _teardown(plane)
 
 
 @pytest.fixture(params=_params(GRAPH_ADAPTERS))
-async def graph(request: pytest.FixtureRequest) -> GraphPlane:
+async def graph(request: pytest.FixtureRequest) -> AsyncIterator[GraphPlane]:
     plane: GraphPlane = await request.param()
-    return plane
+    yield plane
+    await _teardown(plane)

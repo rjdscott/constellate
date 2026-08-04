@@ -3,9 +3,11 @@
 openCypher over the same doubled-edge convention as Kuzu/CTE. AGE 1.7 has
 no shortest_path() (lands in 1.8, the ADR's revisit trigger), so hops are
 unrolled into explicit relationship chains — one MATCH per hop count, each
-aggregating in-engine, merged in Python to the exact Kuzu semantics:
+aggregating in-engine, merged in Python to Kuzu's *ranking* semantics:
 support = paths over all hop counts, hops = min hop count reaching the
-node, score = best (weight product / hops) at that min hop count.
+node. Score/path metadata can differ from kuzu with multiple seeds (kuzu
+scores per-pair SHORTEST paths; this adapter scores the best-weight path
+at the global min hop count) — ranks, which RRF consumes, match.
 
 Values cross the boundary as scalar agtype (strings/numbers), never
 composite ::vertex/::edge — that keeps parsing to `json.loads` of scalars
@@ -58,6 +60,10 @@ class AgeGraph:
         self._prefix = item_prefix
 
     async def _cypher(self, query: str, columns: str) -> list[list[Any]]:
+        # data values are inlined as cypher literals inside a $q$ dollar-quote;
+        # a value containing the tag itself would break out into raw SQL
+        if "$q$" in query:
+            raise ValueError("cypher query must not contain the $q$ dollar-quote tag")
         async with self._pool.acquire() as conn:
             for stmt in SESSION_SETUP:
                 await conn.execute(stmt)

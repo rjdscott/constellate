@@ -244,8 +244,12 @@ async def load_orion(canonical: Path = CANONICAL_DIR, dsn: str = ORION_DSN) -> N
                 print(f"load: {step} up to date")
                 continue
             t0 = time.perf_counter()
-            rows = await fn(conn)
-            await _mark(conn, step, rows, t0)
+            # step + manifest mark commit atomically: a crash mid-step rolls
+            # everything back, so reruns can never duplicate COPYed rows or
+            # wedge on a half-loaded table
+            async with conn.transaction():
+                rows = await fn(conn)
+                await _mark(conn, step, rows, t0)
         await conn.execute("ANALYZE")
         print("load: orion ready")
     finally:

@@ -33,7 +33,10 @@ services:
       -c max_wal_size=4GB
     shm_size: 4g
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U constellate -d constellate"]
+      # -h 127.0.0.1 forces TCP to the FINAL server: the postgres entrypoint's
+      # temporary init server listens on the unix socket only, and a
+      # socket-based pg_isready can report healthy during that window
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U constellate -d constellate"]
       interval: 5s
       timeout: 3s
       retries: 30

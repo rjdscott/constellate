@@ -71,7 +71,7 @@ async def _build_orion(cfg: PlatformConfig) -> Service:
     )
     try:
         pool = await asyncpg.create_pool(dsn, min_size=2, max_size=8, timeout=5)
-    except OSError as exc:
+    except (TimeoutError, OSError) as exc:
         raise ConfigError(
             f"cannot reach orion at {dsn} — run `make up PLATFORM=orion`, then load"
         ) from exc
@@ -84,6 +84,7 @@ async def _build_orion(cfg: PlatformConfig) -> Service:
     elif adapter == "age":
         graph = AgeGraph(pool, AGE_GRAPH)
     else:
+        pool.terminate()
         raise ConfigError(f"unknown graph adapter {adapter!r} (cte|age)")
     pipeline = Pipeline(relational, vector, graph, cfg)
     return Service(pipeline, relational, graph, cfg)
