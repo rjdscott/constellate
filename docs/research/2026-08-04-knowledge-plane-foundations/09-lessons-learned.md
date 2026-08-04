@@ -209,3 +209,21 @@ hangs, not errors.
 `hydra-ops-metrics` capture; phase-06 progress log.
 **Post angle:** "Three graph engines, three planners, one lesson: the
 query language is a promise the planner doesn't always keep."
+
+*Amendment, same day — the fix's own lessons (commit 7f15499):* the
+rewrite ended up reproducing `cte.py`'s query shape almost literally
+(pre-aggregated `UNION ALL` branches per hop count, aggregate then
+LIMIT in-engine), and two further findings landed on the way. (a)
+*Ship the aggregation, not the rows*: the first fix returned all
+(dst, count) pairs per hop and merged in Python — Bolt transfer of
+~50k rows/hop dominated (815ms wall, ~150ms engine); moving the merge
++ LIMIT in-engine cut it to 201ms. (b) *Split MATCH clauses per hop*:
+relationship uniqueness is scoped to one MATCH, so per-hop clauses give
+the CTE's unrestricted-walk semantics — the 432-case differential vs
+CteGraph went from 431/432 (a 3-hop trail-vs-walk tie-flip) to
+**432/432 exact**, and deleting the EdgeUniquenessFilter saved 294ms.
+Correctness and speed pulled the same direction. Final floor is data,
+not planner: 10 hub-heavy seeds legitimately generate 2.98M two-hop
+paths (`genre:Drama` = 25,606 edges) and the support contract counts
+all of them — 663ms e2e worst-case vs Postgres CTE's 43ms on identical
+semantics remains the honest cross-engine delta to explain on stage.
