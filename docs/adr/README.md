@@ -30,3 +30,4 @@ pipeline (research → ADR → plan → audit).
 | [0007](0007-explorer-ui-react-spa-design-system.md) | Explorer UI: production-grade React SPA with custom design system | Accepted |
 | [0008](0008-mcp-fastmcp-shared-service-layer.md) | MCP: FastMCP v3, hand-written tools over shared service layer | Accepted |
 | [0009](0009-platform-codenames-constellations.md) | Platform naming: constellation codenames (Lyra/Orion/Hydra/Eridanus) + architecture epithets | Accepted |
+| [0010](0010-package-named-constellate.md) | Python package named `constellate`, not `kp` | Accepted |

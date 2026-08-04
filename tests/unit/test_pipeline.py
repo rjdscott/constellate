@@ -2,9 +2,9 @@
 
 from collections.abc import Iterable, Sequence
 
-from kp.config import PlatformConfig
-from kp.core.pipeline import Pipeline
-from kp.core.types import (
+from constellate.config import PlatformConfig
+from constellate.core.pipeline import Pipeline
+from constellate.core.types import (
     Candidate,
     Edge,
     Item,

@@ -76,3 +76,13 @@ proven against in-memory fakes, per-platform configs with fingerprints,
 conformance suites executable-but-skipping, CI. The adapter boundary is now
 real: phase 03's engines must fit this contract, not shape it. Artifacts:
 `src/kp/core/*`, `tests/`, `config/{lyra,orion,hydra}.yaml`, PR #2.
+
+## 2026-08-04 — ADR 0010: package renamed kp → constellate
+
+Post-phase-01 review caught an inherited non-decision: `src/kp/` came from
+the prep sketch unexamined. Same disease ADR 0009 cured for platforms —
+opaque acronym vs identity. Renamed to `src/constellate/` while exactly one
+PR was open and zero consumers existed; prep sketch updated with a
+supersession banner. Lesson for the talk: naming decisions hide in
+scaffolding, and the cheapest rename is the one you do before anyone
+imports you.

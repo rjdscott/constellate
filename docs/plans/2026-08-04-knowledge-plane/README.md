@@ -43,10 +43,10 @@ adapters) is retained.
 
 ## Critical files (once built)
 
-- `src/kp/core/` — types, protocols, pipeline, fusion (engine types never
+- `src/constellate/core/` — types, protocols, pipeline, fusion (engine types never
   escape a plane module; wiring in one factory)
-- `src/kp/planes/` — one directory per plane, one module per adapter
-- `src/kp/service.py` — shared service layer (REST routes and MCP tools both
+- `src/constellate/planes/` — one directory per plane, one module per adapter
+- `src/constellate/service.py` — shared service layer (REST routes and MCP tools both
   call it)
 - `bench/` — harness, probes, results JSON artifacts (committed)
 - `compose/` + `docker/` — Orion and Hydra definitions

@@ -1,5 +1,5 @@
-from kp.core.fusion import rrf
-from kp.core.types import Candidate
+from constellate.core.fusion import rrf
+from constellate.core.types import Candidate
 
 
 def _cands(source: str, ids: list[int]) -> list[Candidate]:

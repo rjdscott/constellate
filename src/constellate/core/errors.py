@@ -1,5 +1,5 @@
 class KnowledgePlaneError(Exception):
-    """Base for all kp errors."""
+    """Base for all constellate errors."""
 
 
 class ConfigError(KnowledgePlaneError):
