@@ -1,0 +1,69 @@
+# Migration narrative — the talk arc
+
+Dated milestone log. Every accepted ADR and completed plan phase appends an
+entry: what changed, why it matters to the story, artifacts. Appends only.
+
+---
+
+## 2026-08-04 — Workspace opened
+
+Project reframed from `docs/constellate-prep.md` sketch into the repo's
+research → ADR → plan pipeline. Five research threads launched (graph engines,
+embedded vector, Postgres lite tier, embeddings + benchmark methodology,
+UI + MCP). Machine baseline: 28 cores, 62 GB RAM, Docker 29 / Compose v5.
+
+## 2026-08-04 — Research complete; ADRs 0001–0008 proposed
+
+All five threads returned same-day. Findings that overturned the prep doc:
+Kuzu archived Oct 2025 (Apple acquired Kùzu Inc. — public Feb 2026);
+ml-32m ships no tag genome (pins ml-25m); FalkorDB dropped Bolt in v4.20;
+Memgraph 3.12 displaces both FalkorDB and Neo4j for the mid tier on
+concurrency scaling + client fairness; at 62k vectors exact flat search is
+the honest tier0 baseline (ANN becomes the *teaching* layer, not the
+default); AGE is alive with an official PG18 image but CTEs remain the
+honest lite-tier default at 2–3 hops. Eight ADRs proposed, awaiting
+ratification. Artifacts: `docs/research/2026-08-04-knowledge-plane-foundations/01–06`,
+`docs/adr/0001–0008`.
+
+## 2026-08-04 — UI requirements elevated; ADR 0007 rewritten pre-acceptance
+
+On review, the explorer's role changed: from benchmark lens to productized
+face of the project (content, videos, public excitement), with a full live
+EKS deployment planned after the analysis. ADR 0007 rewritten (legitimate —
+still Proposed): no-build page → Vite/React/TS SPA with a custom design
+system (Radix + Tailwind v4 tokens, Cytoscape.js, Observable Plot, Motion).
+EKS itself stays deferred; the SPA artifact is deployment-agnostic. Phase 07
+amended accordingly — now the largest phase, design tokens gated first.
+Story beat for the talk: requirements moved, the ADR trail shows exactly
+when and why.
+
+## 2026-08-04 — Platform naming reframed (ADR 0009)
+
+tier0/lite/mid/ent rejected: it encodes a superiority ladder the project
+explicitly argues against. New vocabulary — the **embedded**, **unified**,
+**composed**, and **distributed** knowledge planes ("right tool for the
+job"); Make variable `PLATFORM=`, config keys match. Constellation codenames
+(lyra/orion/hydra/eridanus) considered and kept in reserve as a future
+branding layer. Docs/plan swept; research snapshots keep old names with a
+mapping note. Story beat: "unified vs composed" now states the central
+comparison in two words.
+
+## 2026-08-04 — Naming finalized: constellation codenames + architecture epithets
+
+Same-day refinement after the product framing solidified: descriptive words
+alone are unbrandable ("the composed platform" titles no video). Final form
+(ADR 0009 rewritten while Proposed): constellation codenames as canonical
+keys everywhere — **Lyra** (embedded), **Orion** (unified), **Hydra**
+(composed), **Eridanus** (distributed, future) — with the architecture terms
+kept as permanent technical epithets at first mention. The platforms are
+Constellate's constellations; `PLATFORM=lyra` is the default. Vela avoided
+(Kuzu fork); Hydra's collision with Meta's config lib accepted.
+
+## 2026-08-04 — ADRs 0001–0009 accepted; execution begins
+
+All nine ADRs ratified in one pass: ml-25m pin, Lyra exact-first vector,
+Lyra Kuzu 0.11.3 pin, Orion PG18 CTE-default, Hydra Memgraph, dual embedding
+ablation, production-grade explorer SPA, FastMCP v3, constellation naming.
+Plan `docs/plans/2026-08-04-knowledge-plane/` moves to execution; phase 01
+(scaffold) starts on `feat/scaffold`. Foundation era complete — everything
+from here is build.
