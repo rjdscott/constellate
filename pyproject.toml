@@ -18,6 +18,9 @@ dependencies = [
     "kuzu==0.11.3",
     "fastapi>=0.115",
     "uvicorn>=0.30",
+    "ir-measures>=0.4.3",
+    "hdrhistogram>=0.10.7",
+    "ranx>=0.3.21",
 ]
 
 [dependency-groups]
@@ -55,7 +58,17 @@ files = ["src"]
 mypy_path = "src"
 
 [[tool.mypy.overrides]]
-module = ["sklearn.*", "scipy.*", "pyarrow.*", "faiss.*", "hnswlib.*", "kuzu.*"]
+module = [
+    "sklearn.*",
+    "scipy.*",
+    "pyarrow.*",
+    "faiss.*",
+    "hnswlib.*",
+    "kuzu.*",
+    "ir_measures.*",
+    "ranx.*",
+    "hdrh.*",
+]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

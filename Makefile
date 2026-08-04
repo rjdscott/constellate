@@ -42,8 +42,10 @@ endif
 bench-smoke:
 	uv run python -m constellate.smoke $(PLATFORM)
 
+BENCH_ARGS ?=
+
 bench:
-	@echo "make bench PLATFORM=$(PLATFORM): implemented in phase 04" && exit 1
+	uv run python -m constellate.bench.run $(PLATFORM) $(BENCH_ARGS)
 
 report:
-	@echo "make report: implemented in phase 04" && exit 1
+	uv run python -m constellate.bench.report
