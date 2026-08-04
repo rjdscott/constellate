@@ -50,7 +50,11 @@ jobs:
         working-directory: ui
     steps:
       - uses: actions/checkout@v4
-      - run: corepack enable
+      # corepack at repo root can't see ui/package.json's pinned pnpm and
+      # falls back to latest (needs node 22+); action-setup reads the pin.
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: ui/package.json
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
