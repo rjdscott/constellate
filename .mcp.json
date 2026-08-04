@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "constellate": {
+      "command": "uv",
+      "args": ["run", "python", "-m", "constellate.mcp_server"]
+    }
+  }
+}

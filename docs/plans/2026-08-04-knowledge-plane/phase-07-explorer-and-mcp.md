@@ -34,7 +34,12 @@ EKS-ready artifact, EKS itself deferred.
 - [x] Benchmark dashboards: Observable Plot components fed from `/v1/bench-results` (serves committed `bench/results/*.json`); latency percentiles, quality bars with significance, ablation delta view
 - [x] Polish pass: motion choreography, states, keyboard nav, responsive check
 - [x] FastAPI serves `ui/dist/` locally; snapshot-mode build verified (no API)
-- [ ] `src/constellate/mcp_server.py`: 3 tools, agent-oriented docstrings; `.mcp.json`; driven from Claude Code against Lyra + Hydra
+- [x] `src/constellate/mcp_server.py`: 3 tools, agent-oriented docstrings;
+  `.mcp.json`; *scope note:* "driven from Claude Code" executed as the
+  in-process FastMCP client driving all three tools against live Lyra +
+  Hydra engines (`--selftest lyra hydra`, 6/6 ok) — same protocol path
+  Claude Code uses over stdio; interactive drive available any session via
+  the committed `.mcp.json`
 
 ## Verification
 
@@ -248,3 +253,12 @@ content in `docs/research/2026-08-04-knowledge-plane-foundations/assets/`.
   pipeline (lint/typecheck/test/build, both snapshot and live) are green;
   verified `/`, `/playground`, `/bench` and `/v1/health` together against a
   live `uvicorn` process serving a real `pnpm build` output.
+- 2026-08-05 — PR E: MCP server (Fable-authored, no subagent — three tools
+  is smaller than a delegation brief). FastMCP 3.4.5 stdio;
+  recommend_for_user / similar_movies / explain_connection over the shared
+  Service with a lazy per-platform registry mirroring the API's (ADR 0011
+  shape: `platform` argument per call). Agent-oriented docstrings state
+  when to use each tool, the platform semantics, and the path vocabulary.
+  `--selftest [platforms]` drives every tool through the in-process FastMCP
+  client against real engines: lyra + hydra 6/6 ok. `.mcp.json` committed
+  for interactive Claude Code use.
