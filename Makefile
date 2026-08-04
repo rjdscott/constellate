@@ -1,6 +1,6 @@
 PLATFORM ?= lyra
 
-.PHONY: check lint type test doc-check seed load up down bench report
+.PHONY: check lint type test doc-check seed load up down bench bench-smoke report
 
 check: lint type test doc-check
 
@@ -23,7 +23,7 @@ seed:
 	uv run python -m constellate.ingest.seed
 
 load:
-	@echo "make load PLATFORM=$(PLATFORM): implemented in phase 03+" && exit 1
+	uv run python -m constellate.load $(PLATFORM)
 
 up:
 ifeq ($(PLATFORM),lyra)
@@ -38,6 +38,9 @@ ifeq ($(PLATFORM),lyra)
 else
 	docker compose -f compose/$(PLATFORM).yml down
 endif
+
+bench-smoke:
+	uv run python -m constellate.smoke $(PLATFORM)
 
 bench:
 	@echo "make bench PLATFORM=$(PLATFORM): implemented in phase 04" && exit 1

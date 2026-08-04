@@ -121,3 +121,19 @@ fewer than 10 train ratings only 125 have genome tags, and the first probe
 build silently dropped the never-rated ones because `groupby().size()`
 can't count to zero. The graph plane's pitch — reaching items the vector
 plane can't see — is exactly the population that's hardest to probe.
+
+## 2026-08-04 — Phase 03: Lyra answers, and the graph plane teaches its first lesson
+
+Lyra, the embedded knowledge plane, runs end to end with no daemon: DuckDB
+relational + faiss-flat (hnswlib alongside) + Kuzu, wired through the
+factory into the six-step pipeline, served over FastAPI, all three demo
+flows explained ("item:318 → CO_RATED → item:356") in 130–350ms. The
+conformance progress bar hit zero skips — every adapter passes the same
+suite. The talk gets its first genuine graph-engine war story: a two-hop
+expansion from Shawshank is 321,055 paths, and the naive adapter streamed
+every one of them into Python. The fix is the lesson — aggregate inside the
+engine, fetch paths only for winners — and beneath it, three successive
+kuzu planner traps (prepared params, list_contains, any far-node predicate)
+each silently turned a 70ms anchored plan into a full-graph walk. Tiny
+conformance graphs stayed green the whole time: correctness suites do not
+catch planner regressions; only production-shaped data does.
