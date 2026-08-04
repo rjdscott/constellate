@@ -11,6 +11,8 @@ from pathlib import Path
 import asyncpg
 import kuzu
 import numpy as np
+from neo4j import AsyncGraphDatabase
+from qdrant_client import AsyncQdrantClient
 
 from constellate.config import PlatformConfig, load_config
 from constellate.core.errors import ConfigError
@@ -20,11 +22,13 @@ from constellate.ingest import CANONICAL_DIR, DATA_DIR
 from constellate.planes.graph.age import AgeGraph
 from constellate.planes.graph.cte import CteGraph
 from constellate.planes.graph.kuzu import KuzuGraph
+from constellate.planes.graph.memgraph import MemgraphGraph
 from constellate.planes.relational.duckdb import DuckDBRelational
 from constellate.planes.relational.postgres import PostgresRelational
 from constellate.planes.vector.flat import FlatVector
 from constellate.planes.vector.hnsw import HnswVector
 from constellate.planes.vector.pgvector import PgVector
+from constellate.planes.vector.qdrant import QdrantVector
 from constellate.service import Service
 
 AGE_GRAPH = "constellate"  # AGE graph name make load PLATFORM=orion creates
@@ -90,10 +94,40 @@ async def _build_orion(cfg: PlatformConfig) -> Service:
     return Service(pipeline, relational, graph, cfg)
 
 
+async def _build_hydra(cfg: PlatformConfig) -> Service:
+    dsn = os.environ.get("HYDRA_DSN") or str(
+        cfg.engines.get("relational", {}).get(
+            "dsn", "postgresql://constellate:constellate@localhost:15433/constellate"
+        )
+    )
+    try:
+        pool = await asyncpg.create_pool(dsn, min_size=2, max_size=8, timeout=5)
+    except (TimeoutError, OSError) as exc:
+        raise ConfigError(
+            f"cannot reach hydra postgres at {dsn} — run `make up PLATFORM=hydra`, then load"
+        ) from exc
+    relational = PostgresRelational(pool)
+    vec_cfg = cfg.engines.get("vector", {})
+    client = AsyncQdrantClient(
+        url=os.environ.get("HYDRA_QDRANT_URL") or str(vec_cfg.get("url", "http://localhost:16333")),
+        prefer_grpc=True,
+        grpc_port=int(str(vec_cfg.get("grpc_port", 16334))),
+    )
+    vector = QdrantVector(client, dim=cfg.data.embedding_dim)
+    uri = os.environ.get("HYDRA_MEMGRAPH_URI") or str(
+        cfg.engines.get("graph", {}).get("uri", "bolt://localhost:17687")
+    )
+    graph = MemgraphGraph(AsyncGraphDatabase.driver(uri, auth=None))
+    pipeline = Pipeline(relational, vector, graph, cfg)
+    return Service(pipeline, relational, graph, cfg)
+
+
 async def build_service(platform: str = "lyra") -> Service:
     cfg = load_config(platform)
     if platform == "lyra":
         return _build_lyra(cfg)
     if platform == "orion":
         return await _build_orion(cfg)
-    raise ConfigError(f"platform {platform!r} lands in a later phase (06: hydra)")
+    if platform == "hydra":
+        return await _build_hydra(cfg)
+    raise ConfigError(f"unknown platform {platform!r} (lyra|orion|hydra)")
