@@ -2,6 +2,7 @@
 
 | run | platform | graph | sha | hybrid R@10 | delta vs vector | verdict |
 |---|---|---|---|---|---|---|
+| hydra-0b36d7c-20260804T134236Z | hydra | memgraph | 0b36d7c | 0.0338 | +0.0138 | GO |
 | lyra-f7eb799-20260804T082917Z | lyra | - | f7eb799 | 0.0355 | +0.0141 | GO |
 | orion-8187751-20260804T101625Z | orion | cte | 8187751 | 0.0376 | +0.0267 | GO |
 | orion-e3526c7-20260804T110915Z | orion | age | e3526c7 | 0.0376 | +0.0267 | GO |
@@ -10,8 +11,48 @@
 
 | run | R@10 | nDCG@10 | tolerance | verdict |
 |---|---|---|---|---|
+| hydra-0b36d7c-20260804T134236Z | -0.0017 | -0.0025 | ±0.02 | within |
 | orion-8187751-20260804T101625Z | +0.0021 | +0.0002 | ±0.02 | within |
 | orion-e3526c7-20260804T110915Z | +0.0021 | +0.0002 | ±0.02 | within |
+
+## hydra-0b36d7c-20260804T134236Z
+
+- platform `hydra` · sha `0b36d7c` · 2026-08-04T13:42:36+00:00 · config `3e16e0cd60325e98`
+- flows: F1 ok, F2 ok, F3 ok, F4 ok, F5 ok, F6 ok
+
+### Verdict: **GO** — hybrid beats vector-only on Recall@10 by +0.0138 (p=0.003825)
+
+### Quality (200 graph-necessary probes)
+
+| arm | R@10 | R@50 | nDCG@10 | RR@10 | coverage | novelty |
+|---|---|---|---|---|---|---|
+| vector_only | 0.0200 | 0.0366 | 0.0238 | 0.0625 | 0.0279 | 17.29 |
+| graph_only | 0.0965 | 0.3516 | 0.0752 | 0.1025 | 0.0172 | 13.04 |
+| hybrid | 0.0338 | 0.2377 | 0.0337 | 0.0744 | 0.0252 | 15.35 |
+
+#### By probe kind
+
+| probe kind | vector_only R@10 | graph_only R@10 | hybrid R@10 |
+|---|---|---|---|
+| cold_start | 0.0580 | 0.0300 | 0.0620 |
+| cross_genre | 0.0087 | 0.3520 | 0.0619 |
+| path_required | 0.0060 | 0.0040 | 0.0040 |
+| tag_bridge | 0.0073 | 0.0000 | 0.0073 |
+
+### Fusion tuning (weighted RRF, validation half)
+
+Best graph weight **2.0** on nDCG@10 (baseline 1.0). Held-out test half: baseline nDCG@10 0.0329 vs tuned 0.0417.
+
+### Latency (open-loop, coordinated-omission-safe)
+
+Workload: hybrid similar(seed), k=10, probe seeds round-robin — warm mean 103.84ms, est. capacity 9.6/s. **Indicative**: in-process, no network hop.
+
+| rate/s | conc | samples | p50ms | p95ms | p99ms | max ms | errors |
+|---|---|---|---|---|---|---|---|
+| 6.7 | 1 | 5000 | 114.7 | 165.2 | 193.8 | 239.5 | 0 |
+| 6.7 | 8 | 5000 | 115.1 | 171.1 | 199.7 | 279.8 | 0 |
+| 6.7 | 32 | 5000 | 114.6 | 170.5 | 198.7 | 269.1 | 0 |
+| 11.6 | 32 | 5000 | 109.9 | 160.8 | 193.2 | 246.9 | 0 |
 
 ## lyra-f7eb799-20260804T082917Z
 
