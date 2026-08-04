@@ -77,6 +77,6 @@ make bench PLATFORM=hydra && make report
   equivalence gate within ±0.02 of Lyra (−0.0017 R@10); p50 115ms flat
   at concurrency 1/8/32, sustained 11.6Hz (1.2× estimated capacity)
   without saturating. Determinism note: unseeded multi-threaded qdrant
-  HNSW build shifts vector metrics slightly between rebuilds
-  (nDCG@10 0.0353→0.0337) — an L9 boundary lyra's seeded hnswlib build
-  doesn't have; equivalence gate unaffected.
+  HNSW build shifts hybrid metrics slightly between rebuilds (nDCG@10
+  0.0353→0.0337, drift originating in the vector arm) — an L9 boundary
+  lyra's seeded hnswlib build doesn't have; equivalence gate unaffected.

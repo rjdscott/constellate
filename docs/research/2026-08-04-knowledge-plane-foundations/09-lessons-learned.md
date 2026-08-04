@@ -143,7 +143,8 @@ interesting."
 where the determinism guarantee ends. Qdrant's HNSW build is
 multi-threaded and unseeded, so every `make rebuild PLATFORM=hydra`
 produces a slightly different index — two otherwise-identical bench runs
-measured nDCG@10 0.0353 vs 0.0337 on the vector arm. Lyra never had this
+measured hybrid nDCG@10 0.0353 vs 0.0337, the drift originating in the
+vector arm and propagating through fusion. Lyra never had this
 because its hnswlib build is single-threaded and seeded (a knob we
 controlled in-process; a server engine doesn't offer it). Consequence:
 Hydra quality metrics are *tolerance-reproducible*, not

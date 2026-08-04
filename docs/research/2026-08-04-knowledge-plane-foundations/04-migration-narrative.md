@@ -211,9 +211,8 @@ equivalence is no longer prose: a committed parity differential
 composed pitch — best dedicated engine per plane, Postgres as source of
 truth with Qdrant and Memgraph as projections rebuilt from it alone in
 ~41s (the CDC-shape proof) — survived contact with reality in a
-complicated way. Qdrant honored it: a real HNSW roughly matches the
-embedded hnswlib arm's recall (0.0200 vs 0.0213 R@10), doubling pgvector's
-halfvec showing. Memgraph taxed it: the engine's marquee variable-length
+complicated way. Qdrant honored it: a real HNSW retains ~94% of the exact-search referee's
+recall (0.0200 vs 0.0213 R@10), doubling pgvector's halfvec showing. Memgraph taxed it: the engine's marquee variable-length
 syntax hung for 312+ seconds on production data (planner skips the key
 index for `IN`; DFS path explosion through hubs) and the salvaged
 UNWIND-anchored, unrolled, in-engine-aggregated rewrite — literally the
