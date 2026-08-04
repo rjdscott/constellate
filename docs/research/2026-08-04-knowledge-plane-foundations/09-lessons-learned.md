@@ -138,3 +138,107 @@ latency reruns are free.
 **For builders:** determinism (seeds, sorted-before-sampled, committed manifests, byte-level checks) is what makes benchmark deltas mean something; add it before your first measurement, retrofitting it is misery.
 **Post angle:** "Make your benchmark boring so your findings can be
 interesting."
+
+*Boundary found, phase 06 (2026-08-04):* server-side ANN index builds are
+where the determinism guarantee ends. Qdrant's HNSW build is
+multi-threaded and unseeded, so every `make rebuild PLATFORM=hydra`
+produces a slightly different index — two otherwise-identical bench runs
+measured hybrid nDCG@10 0.0353 vs 0.0337, the drift originating in the
+vector arm and propagating through fusion. Lyra never had this
+because its hnswlib build is single-threaded and seeded (a knob we
+controlled in-process; a server engine doesn't offer it). Consequence:
+Hydra quality metrics are *tolerance-reproducible*, not
+byte-reproducible; the ±0.02 equivalence gate absorbs it, and the
+artifact records the exact index state (`engine_state`) so any drift is
+attributable. For builders: when the index lives in someone else's
+daemon, replace "byte-identical" claims with a stated tolerance and
+record what the engine reports about its own index.
+
+## L10 — ANN engines fail open to brute force; verify the index exists (phase 06)
+
+2026-08-04. Qdrant accepted 62,423 item vectors, answered every query
+correctly, reported `status: green` — and had built **no HNSW index at
+all** (`indexed_vectors_count: 0`). The points spread across 8 segments
+of ~7.8k each; none crossed the default per-segment
+`indexing_threshold` of 20k, so every search ran brute-force per
+segment. Nothing failed loudly: at 62k×256d exact search is fast enough
+to pass any smoke test while completely misrepresenting the engine a
+benchmark claims to measure. Caught only because the loader agent's
+verification step read collection info instead of trusting green.
+Fix (`planes/vector/qdrant.py`, commit f86b796): collection config
+pinned in the adapter — `indexing_threshold=1000` to force a real
+build, M=16 / ef_construct=200 / query-time hnsw_ef=200 for parity with
+the Lyra hnswlib arm and pgvector. Adapter is the single source of
+truth; the loader calls `ensure_collections()` rather than carrying its
+own copy (config drift between load-time and serve-time is how referee
+comparisons silently rot).
+**Principle:** ANN engines degrade to exact search silently; "returns
+correct results fast" proves nothing about *which* algorithm you
+benchmarked.
+**Do differently next time:** make the bench artifact record
+engine-reported index state (indexed vs total counts) per run, so an
+unindexed collection fails the fidelity check instead of a human
+noticing.
+**For builders:** after loading any ANN store, assert the index exists
+and covers your points — thresholds, segment counts, and background
+optimizers all conspire to leave you brute-forcing at small-but-real
+scale. And keep index parameters in exactly one place, shared by loader
+and server.
+**Evidence:** loader agent report (indexed 0 → 61,440/62,423 after
+fix); `hydra-ops-metrics` capture; qdrant collection API output.
+**Post angle:** "Your vector database might not be using its index —
+and it won't tell you."
+
+## L11 — The query shape an engine advertises is not the shape it optimizes (phase 06)
+
+2026-08-04. Memgraph's headline feature — native variable-length
+patterns — is exactly what its planner punished. Stage-1 expansion as
+`MATCH (s)-[rs:REL*1..2]->(d) WHERE s.key IN $seeds` on the production
+graph (58,552 nodes, 1,684,608 edges) ran **>312s at 100% of one core**
+before being killed; the identical semantics as flat unrolled joins in
+Orion's Postgres CTE adapter take 43ms. PROFILE showed two compounding
+planner failures: (1) `WHERE s.key IN $seeds` does not use the
+`:Node(key)` index — the plan was ScanAll over every node, expand
+961,805 edges *backwards*, then filter on the seed list (65% of query
+time in the filter); (2) variable-length expansion materializes each
+path via DFS, which explodes through genre/tag hub nodes (585k 2-hop
+paths from a 10-seed probe). Rewrite (`planes/graph/memgraph.py`):
+`UNWIND $seeds AS sk MATCH (s:Node {key: sk})` compiles to per-seed
+index lookups, and hops unrolled into flat chains mirroring
+`cte.py::_hop_sql` — the same lesson Kuzu taught in phase 03 (L1's
+planner regressions), now from a second engine: the conformance suite's
+tiny graphs stayed green throughout.
+**Principle:** an engine's marquee syntax reflects its parser, not its
+planner; anchor patterns to indexes explicitly and prefer shapes whose
+plans you can read.
+**Do differently next time:** run PROFILE/EXPLAIN on every adapter's
+production-shaped query as part of bringing the adapter up — before the
+first benchmark, not after the first hang. A one-line plan assertion
+("no ScanAll operators") would have caught both this and the Kuzu
+regressions.
+**For builders:** test every graph query at production scale with
+PROFILE before trusting it; `IN`-list predicates and variable-length
+patterns are the two most common planner blind spots, and both fail as
+hangs, not errors.
+**Evidence:** memgraph adapter docstring (measured plan + timings);
+`hydra-ops-metrics` capture; phase-06 progress log.
+**Post angle:** "Three graph engines, three planners, one lesson: the
+query language is a promise the planner doesn't always keep."
+
+*Amendment, same day — the fix's own lessons (commit 7f15499):* the
+rewrite ended up reproducing `cte.py`'s query shape almost literally
+(pre-aggregated `UNION ALL` branches per hop count, aggregate then
+LIMIT in-engine), and two further findings landed on the way. (a)
+*Ship the aggregation, not the rows*: the first fix returned all
+(dst, count) pairs per hop and merged in Python — Bolt transfer of
+~50k rows/hop dominated (815ms wall, ~150ms engine); moving the merge
++ LIMIT in-engine cut it to 201ms. (b) *Split MATCH clauses per hop*:
+relationship uniqueness is scoped to one MATCH, so per-hop clauses give
+the CTE's unrestricted-walk semantics — the 432-case differential vs
+CteGraph went from 431/432 (a 3-hop trail-vs-walk tie-flip) to
+**432/432 exact**, and deleting the EdgeUniquenessFilter saved 294ms.
+Correctness and speed pulled the same direction. Final floor is data,
+not planner: 10 hub-heavy seeds legitimately generate 2.98M two-hop
+paths (`genre:Drama` = 25,606 edges) and the support contract counts
+all of them — 663ms e2e worst-case vs Postgres CTE's 43ms on identical
+semantics remains the honest cross-engine delta to explain on stage.

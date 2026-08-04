@@ -21,6 +21,7 @@
 | `07-lyra-benchmark-findings.md` | phase-04 go/no-go results, per-kind analysis, platform config & tuning record (one findings doc per platform) |
 | `08-orion-benchmark-findings.md` | phase-05 results: exact graph equivalence, pgvector recall delta, the single-process-ceiling finding, CTE-vs-AGE delta, config record |
 | `09-lessons-learned.md` | living cross-phase lessons doc (append per phase) — feeds end-of-project reflection and public write-ups |
+| `10-hydra-benchmark-findings.md` | phase-06 results: four-engine ranking equivalence (+ committed parity test), real-HNSW vs halfvec recall, the graph-leg latency cost of composition, CDC-shape rebuild proof, determinism boundary, config record |
 
 ## Naming map (ADR 0009, decided after these docs were written)
 

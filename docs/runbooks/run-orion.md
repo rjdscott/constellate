@@ -56,7 +56,7 @@ flows/API/bench against it, or switching its graph adapter (CTE ↔ AGE).
    ```
 
    The report's equivalence table compares Orion's hybrid arm to Lyra's
-   within the tolerance stated in `config/orion.yaml` (`engines.bench`).
+   within the tolerance stated in `config/orion.yaml` (top-level `bench`).
 
 ## Failure modes
 

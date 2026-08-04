@@ -69,7 +69,7 @@ class FakeGraph:
 def _client() -> TestClient:
     cfg = PlatformConfig(platform="lyra")
     relational, vector, graph = FakeRelational(), FakeVector(), FakeGraph()
-    service = Service(Pipeline(relational, vector, graph, cfg), relational, graph, cfg)
+    service = Service(Pipeline(relational, vector, graph, cfg), relational, vector, graph, cfg)
     return TestClient(create_app(service))
 
 

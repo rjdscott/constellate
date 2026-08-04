@@ -11,7 +11,7 @@ Any change to this repo, from a fresh clone to an open PR.
    ```bash
    git clone https://github.com/rjdscott/constellate.git && cd constellate
    uv sync          # creates .venv from uv.lock, Python 3.12
-   make check       # expect: ruff clean, mypy clean, "65 passed" (49 without a running Orion), "doc-check: ok"
+   make check       # expect: ruff clean, mypy clean, "81 passed" (49 without Orion + Hydra up), "doc-check: ok"
    make seed        # first run: ~262MB download + a few min build; see seed-the-dataset.md
    make load PLATFORM=lyra && make bench-smoke PLATFORM=lyra   # see run-lyra.md
    ```
@@ -64,3 +64,4 @@ next one — `make doc-check` is its deterministic half and runs in CI anyway.
 
 2026-08-04 — phase 05 (`feat/orion`): 65 tests with Orion up (49 without); bench + report
 targets now real (`docs/runbooks/run-benchmarks.md`).
+2026-08-04 — phase 06 (`feat/hydra`): 81 tests with Orion + Hydra up (49 without, 8 parity tests skip unless both); run-hydra runbook added

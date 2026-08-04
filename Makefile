@@ -1,6 +1,11 @@
 PLATFORM ?= lyra
 
-.PHONY: check lint type test doc-check seed load up down bench bench-smoke report
+# host dirs each platform's compose file bind-mounts (see compose/*.yml) — only
+# these, or `make up` litters an unused one under every other platform
+BIND_DIRS_orion = data/orion/age-import
+BIND_DIRS_hydra = data/hydra/import
+
+.PHONY: check lint type test doc-check seed load rebuild up down bench bench-smoke report
 
 check: lint type test doc-check
 
@@ -25,11 +30,15 @@ seed:
 load:
 	uv run python -m constellate.load $(PLATFORM)
 
+# drop + regenerate derived projections (vector, graph) from relational only
+rebuild:
+	uv run python -m constellate.load $(PLATFORM) rebuild
+
 up:
 ifeq ($(PLATFORM),lyra)
 	@echo "Lyra is in-process; nothing to start"
 else
-	@mkdir -p data/$(PLATFORM)/age-import  # bind-mount dirs must pre-exist user-owned
+	@mkdir -p $(BIND_DIRS_$(PLATFORM))  # bind-mount dirs must pre-exist user-owned
 	docker compose -f compose/$(PLATFORM).yml up -d --wait
 endif
 

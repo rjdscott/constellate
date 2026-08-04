@@ -1,9 +1,74 @@
-# Hydra, the composed knowledge plane — Postgres 18 + Qdrant + Memgraph.
-# Populated in phase 06 (docs/plans/2026-08-04-knowledge-plane/phase-06-hydra.md).
+# Hydra, the composed knowledge plane (ADR 0005) — dedicated engines:
+# Postgres 18 (source of truth) + Qdrant (vector) + Memgraph (graph).
 #
 # Conventions (see orion.yml): explicit project name per platform; host
 # ports = engine default + 10000 so all platforms run simultaneously —
 # postgres 15433 (15432 is Orion's), qdrant 16333/16334, memgraph 17687.
+#
+# Vector and graph stores are derived projections: `make rebuild
+# PLATFORM=hydra` drops and regenerates them from Postgres alone.
 name: constellate-hydra
 
-services: {}
+services:
+  postgres:
+    image: postgres:18.4
+    environment:
+      POSTGRES_USER: constellate
+      POSTGRES_PASSWORD: constellate
+      POSTGRES_DB: constellate
+    command:
+      - -c
+      - shared_buffers=2GB
+      - -c
+      - maintenance_work_mem=1GB
+      - -c
+      - max_wal_size=4GB
+    ports:
+      - "15433:5432"
+    volumes:
+      - hydra-pg:/var/lib/postgresql
+    healthcheck:
+      # TCP probe: a socket-only init server can fool socket checks
+      # (docs/runbooks/run-orion.md, 2026-08-04)
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U constellate -d constellate"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  qdrant:
+    image: qdrant/qdrant:v1.18.3
+    ports:
+      - "16333:6333" # REST
+      - "16334:6334" # gRPC
+    volumes:
+      - hydra-qdrant:/qdrant/storage
+    healthcheck:
+      # image ships no curl/wget; bash /dev/tcp is the standard probe
+      test: ["CMD-SHELL", "bash -c ':> /dev/tcp/127.0.0.1/6333' || exit 1"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  memgraph:
+    image: memgraph/memgraph:3.12.0
+    command:
+      - "--storage-light-edge=true" # edge-heavy graph; ADR 0005
+      - "--memory-limit=8192"
+      - "--log-level=WARNING"
+      - "--telemetry-enabled=false"
+    ports:
+      - "17687:7687"
+    volumes:
+      - hydra-memgraph:/var/lib/memgraph
+      # LOAD CSV reads server-side files; loader drops CSVs here
+      - ../data/hydra/import:/import:ro
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'RETURN 0;' | mgconsole || exit 1"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+volumes:
+  hydra-pg:
+  hydra-qdrant:
+  hydra-memgraph:

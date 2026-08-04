@@ -200,3 +200,32 @@ rows) and a CI hole where the entire Orion surface could silently
 deregister — both fixed before merge. Lessons L2, L3, L5 landed in the
 new living lessons doc (`09-lessons-learned.md`). Artifacts:
 `bench/results/orion-*.json` × 2, findings in `08-orion-benchmark-findings.md`.
+
+## 2026-08-04 — Phase 06: three engines, one contract, and the planner tax made visible
+
+Hydra, the composed knowledge plane, brought the count to four graph
+engines producing byte-ranked-identical retrieval (R@10 0.0965 to four
+decimals across Kuzu, SQL self-joins, AGE, and now Memgraph) — and the
+equivalence is no longer prose: a committed parity differential
+(`tests/conformance/test_graph_parity.py`) guards it on every CI run. The
+composed pitch — best dedicated engine per plane, Postgres as source of
+truth with Qdrant and Memgraph as projections rebuilt from it alone in
+~41s (the CDC-shape proof) — survived contact with reality in a
+complicated way. Qdrant honored it: a real HNSW retains ~94% of the exact-search referee's
+recall (0.0200 vs 0.0213 R@10), doubling pgvector's halfvec showing. Memgraph taxed it: the engine's marquee variable-length
+syntax hung for 312+ seconds on production data (planner skips the key
+index for `IN`; DFS path explosion through hubs) and the salvaged
+UNWIND-anchored, unrolled, in-engine-aggregated rewrite — literally the
+CTE adapter's query shape transliterated into Cypher — still runs the
+graph leg ~2.5× slower than plain Postgres self-joins at identical
+semantics. Two silent-failure classes joined the curriculum: Qdrant
+brute-forcing behind a green status (L10) and the planner blind spots
+(L11). The adversarial review round again reached the proof machinery
+itself: the projection "verification" compared Postgres to Postgres and
+could never fail, and nothing barriered or recorded HNSW index state —
+both now fixed, with the artifact carrying engine-reported index counts.
+Quality: all three platforms within ±0.02 of each other, hybrid GO
+(p=0.0038); p50 115ms flat across concurrency, between embedded Lyra
+(127ms, ceilinged) and unified Orion (43ms, scaling). Artifacts:
+`bench/results/hydra-0b36d7c-*.json`, findings in
+`10-hydra-benchmark-findings.md`.

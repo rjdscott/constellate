@@ -20,21 +20,27 @@ import asyncpg
 import duckdb
 import kuzu
 import pytest
+from neo4j import AsyncGraphDatabase
+from qdrant_client import AsyncQdrantClient
 
 from constellate.core.protocol import GraphPlane, RelationalPlane, VectorPlane
 from constellate.planes.graph.age import AgeGraph
 from constellate.planes.graph.kuzu import KuzuGraph
+from constellate.planes.graph.memgraph import MemgraphGraph
 from constellate.planes.relational.duckdb import DuckDBRelational
 from constellate.planes.relational.postgres import PostgresRelational
 from constellate.planes.vector.flat import FlatVector
 from constellate.planes.vector.hnsw import HnswVector
 from constellate.planes.vector.pgvector import PgVector
+from constellate.planes.vector.qdrant import QdrantVector
 
 DIM = 4  # conformance vectors are 4d
 
 ORION_DSN = os.environ.get(
     "ORION_DSN", "postgresql://constellate:constellate@localhost:15432/constellate"
 )
+HYDRA_QDRANT_URL = os.environ.get("HYDRA_QDRANT_URL", "http://localhost:16333")
+HYDRA_MEMGRAPH_URI = os.environ.get("HYDRA_MEMGRAPH_URI", "bolt://localhost:17687")
 
 
 def _orion_reachable() -> bool:
@@ -58,6 +64,34 @@ def _orion_reachable() -> bool:
 
 
 HAS_ORION = _orion_reachable()
+
+
+def _hydra_reachable() -> bool:
+    """Both derived engines must answer; hydra postgres reuses the orion-tested adapter."""
+
+    async def probe() -> None:
+        client = AsyncQdrantClient(url=HYDRA_QDRANT_URL, timeout=3)
+        try:
+            await client.get_collections()
+        finally:
+            await client.close()
+        driver = AsyncGraphDatabase.driver(HYDRA_MEMGRAPH_URI)
+        try:
+            await driver.verify_connectivity()
+        finally:
+            await driver.close()
+
+    try:
+        asyncio.run(probe())
+        return True
+    except Exception:
+        # HYDRA_REQUIRED=1 (CI): a green suite must never mean "hydra quietly died"
+        if os.environ.get("HYDRA_REQUIRED"):
+            raise
+        return False
+
+
+HAS_HYDRA = _hydra_reachable()
 
 
 async def _orion_pool() -> asyncpg.Pool:
@@ -181,6 +215,54 @@ if HAS_ORION:
     GRAPH_ADAPTERS["cte"] = _cte
     GRAPH_ADAPTERS["age"] = _age
 
+
+async def _qdrant() -> VectorPlane:
+    """Per-test collections; teardown deletes them and closes the client."""
+    suffix = uuid.uuid4().hex[:8]
+    # gRPC, like the factory serves it — a REST-only conformance run tests a
+    # transport nothing in production uses
+    client = AsyncQdrantClient(
+        url=HYDRA_QDRANT_URL,
+        prefer_grpc=True,
+        grpc_port=int(os.environ.get("HYDRA_QDRANT_GRPC", "16334")),
+    )
+    # sweep collections a previous crashed run left behind, then make ours
+    for existing in (await client.get_collections()).collections:
+        if existing.name.startswith(("conf_items_", "conf_users_")):
+            await client.delete_collection(existing.name)
+    plane = QdrantVector(
+        client,
+        items_collection=f"conf_items_{suffix}",
+        users_collection=f"conf_users_{suffix}",
+        dim=DIM,
+    )
+    await plane.ensure_collections()
+    return plane
+
+
+async def _memgraph() -> GraphPlane:
+    """Per-test node label isolates tests on the shared single-db instance."""
+    plane = MemgraphGraph(
+        AsyncGraphDatabase.driver(HYDRA_MEMGRAPH_URI),
+        label=f"Conf_{uuid.uuid4().hex[:8]}",
+        item_prefix="m:",
+    )
+    # sweep labels a previous crashed run left behind (the serving :Node label
+    # never matches), then create ours — SHOW INDEX INFO is the only place a
+    # label with no live nodes is still discoverable
+    for row in await plane._run("SHOW INDEX INFO"):
+        label = str(row["label"])
+        if label.startswith("Conf_"):
+            await plane._run(f"MATCH (n:{label}) DETACH DELETE n")
+            await plane._run(f"DROP INDEX ON :{label}(key)")
+    await plane.ensure_schema()
+    return plane
+
+
+if HAS_HYDRA:
+    VECTOR_ADAPTERS["qdrant"] = _qdrant
+    GRAPH_ADAPTERS["memgraph"] = _memgraph
+
 _SKIP = pytest.param(None, id="none", marks=pytest.mark.skip(reason="no adapters registered yet"))
 
 
@@ -192,6 +274,17 @@ async def _teardown(plane: object) -> None:
     pool = getattr(plane, "_pool", None)  # orion adapters: close the test's pool
     if isinstance(pool, asyncpg.Pool):
         pool.terminate()
+    if isinstance(plane, QdrantVector):
+        try:  # a failed delete must not leak the client too — the sweep in
+            for name in (plane._items, plane._users):  # _qdrant catches the rest
+                await plane._client.delete_collection(name)
+        finally:
+            await plane._client.close()
+    if isinstance(plane, MemgraphGraph):
+        # drop this test's nodes and its index; the label is unique per test
+        await plane._run(f"MATCH (n:{plane._label}) DETACH DELETE n")
+        await plane._run(f"DROP INDEX ON :{plane._label}(key)")
+        await plane._driver.close()
 
 
 @pytest.fixture(params=_params(RELATIONAL_ADAPTERS))
