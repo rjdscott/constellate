@@ -35,3 +35,12 @@ snapshot, go/no-go verdict appended to this progress log AND the migration
 narrative.
 
 ## Progress log
+
+- 2026-08-04 — Phase opened on `feat/bench` from `5f45c85`. Layout decision
+  (same precedent as `bench/probes.py`): typed harness logic lives in
+  `src/constellate/bench/` so mypy --strict and unit tests cover it; `bench/`
+  keeps thin CLIs and the committed `results/` artifacts. Ablation arms ride
+  the existing `RetrievalRequest.planes` subset — no pipeline changes needed.
+  Fusion tuning design: capture vector-only and graph-only runs once, tune
+  weighted RRF offline with ranx on a validation half of the probes, score on
+  the held-out half; pipeline baseline RRF k=60 unchanged.

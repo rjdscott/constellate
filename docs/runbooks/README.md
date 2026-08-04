@@ -27,3 +27,4 @@ exactly what to type and what they should see.
 | [ci-and-merging](ci-and-merging.md) | CI anatomy; merging PRs safely, incl. stacked-PR recovery |
 | [seed-the-dataset](seed-the-dataset.md) | Build/rebuild `data/canonical/` from ml-25m; verify against MANIFEST |
 | [run-lyra](run-lyra.md) | Bring up Lyra end to end: load, smoke flows, REST API, adapter ablation |
+| [run-benchmarks](run-benchmarks.md) | Produce a committed benchmark artifact + report; go/no-go verdict |
