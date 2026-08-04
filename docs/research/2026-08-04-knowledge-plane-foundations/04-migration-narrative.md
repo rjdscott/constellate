@@ -137,3 +137,26 @@ kuzu planner traps (prepared params, list_contains, any far-node predicate)
 each silently turned a 70ms anchored plan into a full-graph walk. Tiny
 conformance graphs stayed green the whole time: correctness suites do not
 catch planner regressions; only production-shaped data does.
+
+## 2026-08-04 — Phase 04: the go/no-go answers GO, and fusion learns humility
+
+The benchmark harness ran, and the bet the project stands on paid out:
+on the 200 graph-necessary probes, hybrid retrieval beats vector-only on
+Recall@10 (+0.0141, p=0.0054) and Recall@50 (+0.186). Container work is
+unblocked. But the headline belongs to the arm nobody was rooting for:
+graph_only dominates *both* (R@10 0.097 vs hybrid's 0.036) — equal-weight
+RRF dilutes graph signal with weaker vector candidates, and the tuned
+graph weight of 1.5 recovers +15% held-out nDCG. Stratification kept the
+story honest: cross_genre is graph's 176× blowout, cold_start goes to the
+*vector* plane (genome-SVD already encodes the tags cold items live on),
+and path_required/tag_bridge score ~0 for every arm because the expander
+fills its budget with 1-hop neighbours before any 2-hop target survives —
+a retrieval-policy gap the harness exists to expose, parked for phase 05+.
+The latency methodology delivered its own lecture: p50/p99 identical at
+concurrency 1/8/32 (the embedded single-process ceiling, measured — 8.7/s
+capacity, the axis Orion and Hydra get to attack), and the past-the-knee
+run showed p50 = 61 *seconds* where a closed-loop harness would have
+reported ~115ms. Coordinated omission isn't a footnote; it's a 500×
+difference in the same run. Artifacts: `bench/results/lyra-c368e54-*.json`,
+`bench/report.md`, findings + per-platform config record in
+`07-lyra-benchmark-findings.md`.

@@ -14,9 +14,7 @@ def test_records_exactly_samples_and_discards_warmup() -> None:
         calls.append(i)
         await asyncio.sleep(0.001)
 
-    result = asyncio.run(
-        run_open_loop(request, rate_hz=500, concurrency=4, samples=40, warmup=10)
-    )
+    result = asyncio.run(run_open_loop(request, rate_hz=500, concurrency=4, samples=40, warmup=10))
     assert len(calls) == 50
     assert result.samples == 40
     assert result.errors == 0

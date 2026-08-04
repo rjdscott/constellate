@@ -28,9 +28,7 @@ class FakeRelational:
         return UserContext(user_id=user_id, n_ratings=1)
 
     async def hydrate(self, ids: Sequence[ItemId]) -> list[Item]:
-        return [
-            Item(item_id=i, title=f"item {i}", year=self.year, genres=["Drama"]) for i in ids
-        ]
+        return [Item(item_id=i, title=f"item {i}", year=self.year, genres=["Drama"]) for i in ids]
 
     async def apply_policy(
         self, ids: Sequence[ItemId], ctx: UserContext | None, policy: dict[str, object]
