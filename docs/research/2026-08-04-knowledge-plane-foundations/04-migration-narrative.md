@@ -86,3 +86,11 @@ PR was open and zero consumers existed; prep sketch updated with a
 supersession banner. Lesson for the talk: naming decisions hide in
 scaffolding, and the cheapest rename is the one you do before anyone
 imports you.
+
+## 2026-08-04 — Runbooks surface added; process becomes curriculum
+
+PRs #1 and #3 merged to main (CI green; #2 was a stacked-PR casualty, now a
+documented failure mode). New doc surface `docs/runbooks/` + `/runbook`
+skill, wired into CLAUDE.md: ADRs record why, runbooks record how, and the
+repo's own incidents become workshop teaching material. First two runbooks:
+local-dev-loop, ci-and-merging.

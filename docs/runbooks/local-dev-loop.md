@@ -1,0 +1,60 @@
+# Run the local dev loop
+
+## When to use
+
+Any change to this repo, from a fresh clone to an open PR.
+
+## Steps
+
+1. **Setup** (once): install [uv](https://docs.astral.sh/uv/), then
+
+   ```bash
+   git clone https://github.com/rjdscott/constellate.git && cd constellate
+   uv sync          # creates .venv from uv.lock, Python 3.12
+   make check       # expect: ruff clean, mypy clean, "16 passed, 12 skipped"
+   ```
+
+   The 12 skips are the conformance suites — they execute but skip until
+   adapters register (see `tests/conformance/conftest.py`). Skips shrinking
+   to zero is the project's progress bar.
+
+2. **Branch** — never commit to main:
+
+   ```bash
+   git checkout -b feat/<slug>    # or fix/ chore/ docs/
+   ```
+
+3. **Work the change.** Rules that bite:
+   - Platform vocabulary is codenames (ADR 0009): `PLATFORM=lyra|orion|hydra`,
+     `config/<platform>.yaml`. Prose introduces each as "Lyra, the embedded
+     knowledge plane" on first mention.
+   - The pipeline never imports a concrete adapter; adapters never import
+     each other. New adapters must pass the conformance suite unchanged.
+   - Executing a plan phase? Tick checkboxes and append to the progress log
+     as you go (`docs/plans/`), not at the end.
+   - Deciding between real alternatives? Write the ADR (`/adr`) in the same
+     PR.
+
+4. **Verify before pushing:**
+
+   ```bash
+   make check
+   ```
+
+5. **PR**: push, open with `gh pr create` (template auto-fills), title
+   `<type>(<scope>): <imperative summary>`. CI must be green before merge —
+   see [ci-and-merging](ci-and-merging.md).
+
+## Failure modes
+
+- `uv sync --frozen` fails in CI but works locally → you changed
+  `pyproject.toml` without committing the regenerated `uv.lock`. Run
+  `uv sync` and commit the lockfile.
+- `make check` lint failures → `uv run ruff check --fix src tests && uv run
+  ruff format src tests`, re-run, review what it changed.
+- Conformance tests error (not skip) after registering an adapter → the
+  adapter violates the contract; fix the adapter, never the suite.
+
+## Last verified
+
+2026-08-04 — against main at `2ef2db1` (phase 01 scaffold).

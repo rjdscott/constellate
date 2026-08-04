@@ -11,12 +11,25 @@ Workflow rules for any Claude (or human) working in this repo.
 - **PR body:** use the template (`.github/pull_request_template.md`). Always fill the test plan.
 - **Squash-merge only.** History stays linear.
 
-## Documentation pipeline (research → ADR → plan → audit)
+## Documentation pipeline (research → ADR → plan → audit, + runbooks)
 
 Four doc surfaces, four skills, one flow:
 `docs/research/` (analysis) → `docs/adr/` (decisions) → `docs/plans/`
 (execution) → `docs/audits/` (verification). Dated-directory convention
-everywhere: `<YYYY-MM-DD>-<slug>/`.
+everywhere: `<YYYY-MM-DD>-<slug>/`. Alongside the flow: `docs/runbooks/`
+(operations) — ADRs record *why*, runbooks record *how*.
+
+**Docs update as-you-go, in the same PR as the change** — plan status +
+progress logs, ADRs at forks, runbook bumps when steps change, migration-
+narrative entries at milestones. The process itself is workshop teaching
+material; incidents and recoveries get written down, not buried.
+
+### Runbooks — `docs/runbooks/`, `/runbook` skill
+
+- Operational how-tos: one task per file, exact copy-pasteable commands,
+  **Failure modes** fed by real incidents (dated), **Last verified** stamp.
+- Conventions + index in `docs/runbooks/README.md`. A PR that invalidates a
+  runbook's steps updates it in the same PR.
 
 ### ADRs — `docs/adr/`, `/adr` skill
 
@@ -53,4 +66,5 @@ everywhere: `<YYYY-MM-DD>-<slug>/`.
 - `docs/adr/README.md` — ADR conventions + index of recorded decisions.
 - `docs/plans/README.md` — plan conventions + index of phase plans (resumable).
 - `docs/audits/README.md` — audit conventions + index of completed audits.
+- `docs/runbooks/README.md` — runbook conventions + index of operational how-tos.
 - `docs/research/` — dated research workspaces (analysis feeding ADRs + plans).
