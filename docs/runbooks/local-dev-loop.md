@@ -11,13 +11,14 @@ Any change to this repo, from a fresh clone to an open PR.
    ```bash
    git clone https://github.com/rjdscott/constellate.git && cd constellate
    uv sync          # creates .venv from uv.lock, Python 3.12
-   make check       # expect: ruff clean, mypy clean, "17 passed, 12 skipped", "doc-check: ok"
+   make check       # expect: ruff clean, mypy clean, "36 passed", "doc-check: ok"
    make seed        # first run: ~262MB download + a few min build; see seed-the-dataset.md
+   make load PLATFORM=lyra && make bench-smoke PLATFORM=lyra   # see run-lyra.md
    ```
 
-   The 12 skips are the conformance suites — they execute but skip until
-   adapters register (see `tests/conformance/conftest.py`). Skips shrinking
-   to zero is the project's progress bar.
+   Conformance suites (`tests/conformance/`) run against every registered
+   adapter; they skipped until phase 03 registered Lyra's four. New adapters
+   register in `tests/conformance/conftest.py` and must pass unchanged.
 
 2. **Branch** — never commit to main:
 
@@ -61,5 +62,5 @@ next one — `make doc-check` is its deterministic half and runs in CI anyway.
 
 ## Last verified
 
-2026-08-04 — phase 02 (`feat/seed`): test count bumped to 17, `make seed`
-added to setup.
+2026-08-04 — phase 03 (`feat/lyra`): 36 tests / zero skips, load + smoke
+steps added.
