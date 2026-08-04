@@ -32,6 +32,13 @@ def test_evaluate_hand_checked() -> None:
     assert 0 < scores["nDCG@10"] < 1
 
 
+def test_evaluate_scores_missing_queries_as_zero() -> None:
+    # pytrec_eval drops run-absent queries from the mean; evaluate must not
+    partial = _run_from_ranking({"tag_bridge:1": ["10", "11"]})
+    scores = evaluate(QRELS, partial)
+    assert scores["R@10"] == 1.0 / 4  # one perfect query, three zeros
+
+
 def test_evaluate_by_kind_strata() -> None:
     run = _run_from_ranking(
         {

@@ -91,7 +91,7 @@ def test_all_flows_pass_on_wellbehaved_service() -> None:
     assert [r.flow for r in results] == ["F1", "F2", "F3", "F4", "F5", "F6"]
     assert all(r.passed for r in results), [(r.flow, r.failures) for r in results]
     f6 = results[-1]
-    assert len(f6.call_ms) == 6  # 3 repeats x (similar + refine)
+    assert len(f6.call_ms) == 9  # 3 repeats x (similar + refine + explain)
 
 
 def test_f4_catches_policy_violation() -> None:

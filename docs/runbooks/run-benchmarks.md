@@ -15,8 +15,9 @@ regenerating `bench/report.md`. Phase 04's go/no-go verdict comes from here.
    make load PLATFORM=lyra   # no-op if data/lyra/ is complete
    ```
 
-2. Full run (quality + flows + latency; latency alone is ~10–20 min because
-   each of 4 runs fires ≥5,000 open-loop samples):
+2. Full run (quality + flows + latency; latency alone is ~15 min *per run*,
+   ~1 h total — each of 4 runs fires ≥5,000 open-loop samples and Lyra's
+   measured capacity is single-digit requests/second):
 
    ```sh
    make bench PLATFORM=lyra
@@ -53,9 +54,11 @@ regenerating `bench/report.md`. Phase 04's go/no-go verdict comes from here.
   `graph_only`, `hybrid` — the pipeline's `planes` subset), ir_measures
   Recall@10/50, nDCG@10, RR@10 overall + per probe kind, ranx paired
   significance, hand-rolled coverage/novelty.
-- `fusion_tuning`: weighted-RRF graph-weight grid on a validation half
-  (tuned with the pipeline's own `rrf`, so the winning weight drops straight
-  into `config/<platform>.yaml` `fusion.weights`).
+- `fusion_tuning`: weighted-RRF graph-weight grid on a validation half,
+  tuned with the pipeline's own `rrf` at the pipeline's fusion depth
+  (`candidate_multiplier × k` per plane). The `fidelity_check` field proves
+  the offline w=1.0 baseline reproduces the hybrid arm — only then does the
+  winning weight transfer to `config/<platform>.yaml` `fusion.weights`.
 - `latency`: open-loop fixed-rate runs (concurrency 1/8/32 at ~70% of
   measured capacity, plus one past-the-knee saturation run), HdrHistogram
   percentiles, latency = done − scheduled_send (coordinated-omission-safe).

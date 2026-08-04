@@ -76,14 +76,17 @@ def _latency_table(artifact: dict[str, Any]) -> list[str]:
         f"est. capacity {latency['calibration']['est_capacity_hz']}/s. "
         "**Indicative**: in-process, no network hop.",
         "",
-        "| rate/s | conc | samples | p50ms | p95ms | p99ms | p99.9ms | max ms | errors |",
-        "|---|---|---|---|---|---|---|---|---|",
+        # p99.9 stays in the JSON but is decorative at 5k samples (~5 tail
+        # events), so the table stops at p99 — same standard the runbook
+        # applies to p99 under 5k samples
+        "| rate/s | conc | samples | p50ms | p95ms | p99ms | max ms | errors |",
+        "|---|---|---|---|---|---|---|---|",
     ]
     for run in latency["runs"]:
         p = run["percentiles_ms"]
         lines.append(
             f"| {run['rate_hz']} | {run['concurrency']} | {run['samples']} "
-            f"| {p['p50']:.1f} | {p['p95']:.1f} | {p['p99']:.1f} | {p['p99.9']:.1f} "
+            f"| {p['p50']:.1f} | {p['p95']:.1f} | {p['p99']:.1f} "
             f"| {run['max_ms']:.1f} | {run['errors']} |"
         )
     return lines

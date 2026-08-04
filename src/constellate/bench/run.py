@@ -5,7 +5,8 @@
 Sections: flows (F1-F6 hard checks), quality ablation over the probe set
 (vector_only / graph_only / hybrid via the pipeline's `planes` subset — the
 project go/no-go), weighted-RRF tuning on a validation half (the pipeline's
-own rrf, so the tuned weight drops straight into config), open-loop latency.
+own rrf at the pipeline's fusion depth, with a fidelity check against the
+hybrid arm, so the tuned weight transfers to config), open-loop latency.
 Lyra numbers are in-process, hence `latency_indicative: true`.
 """
 
@@ -58,20 +59,34 @@ UTILISATION = 0.7  # fixed-rate runs sit below the knee; one extra run sits past
 
 
 async def collect_arm_runs(
-    service: Service, probes: pd.DataFrame
-) -> tuple[QrelsDict, dict[str, RunDict]]:
-    """One retrieval per probe per arm; scores stored as 1/rank."""
+    service: Service, probes: pd.DataFrame, deep_k: int
+) -> tuple[QrelsDict, dict[str, RunDict], dict[str, RunDict]]:
+    """One retrieval per probe per arm; scores stored as 1/rank.
+
+    Single-plane arms are fetched `deep_k` deep — the pipeline's true
+    per-plane fusion depth for a k=FETCH_K hybrid request — so offline
+    fusion tuning fuses the same inputs the pipeline does. Metrics runs
+    truncate those to FETCH_K (single-plane rankings are monotone, so the
+    truncation equals a k=FETCH_K request exactly).
+    Returns (qrels, metric_runs@FETCH_K, deep_single_plane_runs@deep_k).
+    """
     qrels: QrelsDict = {}
-    runs: dict[str, RunDict] = {arm: {} for arm in ARMS}
+    metric_runs: dict[str, RunDict] = {arm: {} for arm in ARMS}
+    deep_runs: dict[str, RunDict] = {arm: {} for arm in ARMS if arm != "hybrid"}
     for _, row in probes.iterrows():
         qid = f"{row['kind']}:{int(row['seed_item_id'])}"
         qrels[qid] = {str(int(item)): 1 for item in row["expected_items"]}
         for arm, planes in ARMS.items():
+            k = FETCH_K if arm == "hybrid" else deep_k
             response = await service.recommend(
-                RetrievalRequest(seed_item_id=int(row["seed_item_id"]), k=FETCH_K, planes=planes)
+                RetrievalRequest(seed_item_id=int(row["seed_item_id"]), k=k, planes=planes)
             )
-            runs[arm][qid] = {str(r.item_id): 1.0 / r.rank for r in response.recommendations}
-    return qrels, runs
+            recs = response.recommendations
+            if arm != "hybrid":
+                deep_runs[arm][qid] = {str(r.item_id): 1.0 / r.rank for r in recs}
+                recs = recs[:FETCH_K]
+            metric_runs[arm][qid] = {str(r.item_id): 1.0 / r.rank for r in recs}
+    return qrels, metric_runs, deep_runs
 
 
 def split_validation(qids: Sequence[str], seed: int) -> set[str]:
@@ -243,19 +258,40 @@ async def run_bench(platform: str, *, samples: int, warmup: int, skip_latency: b
             print(f"  {f.flow}: {status}")
 
         print(f"quality: {len(probes)} probes x {len(ARMS)} arms ...")
-        qrels, runs = await collect_arm_runs(service, probes)
+        deep_k = cfg.retrieval.candidate_multiplier * FETCH_K
+        qrels, runs, deep = await collect_arm_runs(service, probes, deep_k)
         quality = quality_section(qrels, runs)
         delta = quality["ablation_delta_hybrid_vs_vector"]
         print(f"  ablation delta (hybrid - vector_only): {delta}")
 
         fusion = tune_graph_weight(
             qrels,
-            runs["vector_only"],
-            runs["graph_only"],
+            deep["vector_only"],
+            deep["graph_only"],
             split_validation(list(qrels), cfg.data.random_seed),
             rrf_k=cfg.fusion.rrf_k,
         )
+        # fidelity: offline w=1.0 over the deep runs must reproduce the
+        # pipeline's own hybrid arm, or the tuned weight doesn't transfer
+        offline_baseline = evaluate(
+            qrels,
+            _fuse_offline(
+                deep["vector_only"],
+                deep["graph_only"],
+                set(qrels),
+                rrf_k=cfg.fusion.rrf_k,
+                graph_weight=1.0,
+            ),
+        )
+        fusion["fidelity_check"] = {
+            "offline_w1.0_full_set": offline_baseline,
+            "pipeline_hybrid_arm": quality["arms"]["hybrid"]["overall"],
+        }
         print(f"  fusion tuning: best graph weight {fusion['best_graph_weight']}")
+        print(
+            f"  fidelity: offline w=1.0 nDCG@10 {offline_baseline['nDCG@10']:.4f} "
+            f"vs hybrid arm {quality['arms']['hybrid']['overall']['nDCG@10']:.4f}"
+        )
 
         latency = None
         if not skip_latency:

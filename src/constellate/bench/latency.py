@@ -23,9 +23,11 @@ class LatencyResult:
     concurrency: int
     samples: int
     warmup: int
-    errors: int
+    recorded: int  # histogram count; == samples - errors when healthy
+    errors: int  # failures inside the measured window only
+    warmup_errors: int
     duration_s: float
-    achieved_hz: float
+    completion_hz: float  # total/duration incl. queue drain — not the arrival rate
     percentiles_ms: dict[str, float]
     max_ms: float
 
@@ -45,15 +47,19 @@ async def run_open_loop(
     hist = HdrHistogram(1, _HIST_MAX_US, 3)  # microsecond resolution
     sem = asyncio.Semaphore(concurrency)
     errors = 0
+    warmup_errors = 0
     total = warmup + samples
 
     async def one(i: int, scheduled: float) -> None:
-        nonlocal errors
+        nonlocal errors, warmup_errors
         try:
             async with sem:
                 await request_fn(i)
         except Exception:
-            errors += 1
+            if i >= warmup:
+                errors += 1
+            else:
+                warmup_errors += 1
             return
         if i >= warmup:
             micros = int((time.perf_counter() - scheduled) * 1e6)
@@ -76,9 +82,11 @@ async def run_open_loop(
         concurrency=concurrency,
         samples=samples,
         warmup=warmup,
+        recorded=hist.total_count,
         errors=errors,
+        warmup_errors=warmup_errors,
         duration_s=duration,
-        achieved_hz=total / duration,
+        completion_hz=total / duration,
         percentiles_ms={f"p{p:g}": hist.get_value_at_percentile(p) / 1000 for p in PERCENTILES},
         max_ms=hist.get_max_value() / 1000,
     )

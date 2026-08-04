@@ -10,6 +10,7 @@ F5 explanation    multi-hop path returned for a path_required probe pair
 F6 agent chain    3 chained calls x3 repeats, per-call latency recorded
 """
 
+import time
 from dataclasses import dataclass, field
 
 import pandas as pd
@@ -93,7 +94,7 @@ async def run_flows(service: Service, probes: pd.DataFrame, user_id: int) -> lis
     a, b = int(row["seed_item_id"]), int(row["expected_items"][0])
     path = await service.explain(a, b, max_hops=3)
     if path is None:
-        f5.failures.append(f"no path found between {a} and {b} (expected 2 hops)")
+        f5.failures.append(f"no path found between {a} and {b} (expected within 3 hops)")
     results.append(f5)
 
     f6 = FlowResult("F6", "agent chain x3: similar -> refine with policy -> explain")
@@ -107,7 +108,9 @@ async def run_flows(service: Service, probes: pd.DataFrame, user_id: int) -> lis
             RetrievalRequest(seed_item_id=top, k=10, policy={"min_year": 1990})
         )
         _note(f6, refined, "chain/refine")
+        t0 = time.perf_counter()  # explain returns a bare path, no timings — time it here
         await service.explain(seed, top, max_hops=3)
+        f6.call_ms.append((time.perf_counter() - t0) * 1000)
     results.append(f6)
 
     return results

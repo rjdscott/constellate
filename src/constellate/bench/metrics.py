@@ -21,9 +21,16 @@ MEASURE_NAMES = ("R@10", "R@50", "nDCG@10", "RR@10")
 
 
 def evaluate(qrels: QrelsDict, run: RunDict) -> dict[str, float]:
-    """Aggregate MEASURE_NAMES over the queries present in qrels."""
+    """Aggregate MEASURE_NAMES over the queries present in qrels.
+
+    Queries missing from the run score 0 — pytrec_eval would silently drop
+    them from the mean otherwise, inflating every metric.
+    """
     measures = [ir_measures.parse_measure(name) for name in MEASURE_NAMES]
-    return {str(m): float(v) for m, v in ir_measures.calc_aggregate(measures, qrels, run).items()}
+    filled = {qid: run.get(qid, {}) for qid in qrels}
+    return {
+        str(m): float(v) for m, v in ir_measures.calc_aggregate(measures, qrels, filled).items()
+    }
 
 
 def evaluate_by_kind(qrels: QrelsDict, run: RunDict) -> dict[str, dict[str, float]]:
