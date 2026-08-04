@@ -1,0 +1,88 @@
+@import 'tailwindcss';
+@import './design/tokens.css';
+
+/* Base: the shell is the instrument panel — void background, starlight text.
+   Everything else is a utility class built from the tokens above. */
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  html[data-theme='light'] {
+    color-scheme: light;
+  }
+
+  body {
+    background: var(--color-void);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: 1.5;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* Numbers that can change width must not make the layout twitch. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Atmosphere is dark-theme-only (design README, "Starfield"). */
+  html[data-theme='light'] .starfield,
+  html[data-theme='light'] .aurora {
+    display: none;
+  }
+
+  /* Barely-there wash of the platform hues across the sky. Dark only. */
+  .aurora {
+    background:
+      radial-gradient(52% 38% at 68% 12%, rgb(240 178 78 / 0.05), transparent 70%),
+      radial-gradient(45% 36% at 32% 18%, rgb(93 211 240 / 0.045), transparent 70%),
+      radial-gradient(50% 40% at 58% 52%, rgb(177 140 245 / 0.05), transparent 72%);
+  }
+
+  /* Liveness: one pulse on arrival, never a loop. Reduced motion zeroes the
+     token, so the animation collapses to nothing. */
+  /* Proof rows land one after another — arrival order is the point. */
+  .proof-arrive {
+    animation: proof-arrive var(--motion-base) var(--ease-standard) both;
+  }
+
+  @keyframes proof-arrive {
+    from {
+      opacity: 0;
+      transform: translateY(3px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .pulse-once {
+    animation: pulse-once var(--motion-trace) var(--ease-standard) 1;
+  }
+
+  @keyframes pulse-once {
+    0% {
+      transform: scale(0.4);
+      opacity: 0;
+    }
+    60% {
+      transform: scale(1.6);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+}

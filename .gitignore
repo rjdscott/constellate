@@ -14,8 +14,11 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+# root-anchored: these are python build outputs, and an unanchored `lib/`
+# also swallowed ui/src/lib/ (the API client) — silently, which is the worst
+# kind of ignore rule.
+/lib/
+/lib64/
 parts/
 sdist/
 var/

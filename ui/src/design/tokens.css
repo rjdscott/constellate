@@ -1,0 +1,116 @@
+/* Observatory design tokens — see ui/src/design/README.md for the system.
+   Semantic custom properties flip per theme; Tailwind v4 @theme maps them
+   to utilities. Components use semantic names only, never raw hex. */
+
+:root,
+[data-theme="dark"] {
+  --color-void: #070a12;
+  --color-surface: #0c111d;
+  --color-raised: #131a2a;
+  --color-hairline: #1f2839;
+  --color-text: #e9edf6;
+  --color-text-dim: #9aa4b9;
+  --color-text-faint: #6b7488;
+  --color-accent: #e3b858;
+  --color-accent-contrast: #070a12;
+
+  --data-lyra: #5dd3f0;
+  --data-orion: #f0b24e;
+  --data-hydra: #b18cf5;
+  --data-relational: #72cba8;
+  --data-vector: #6fa5f5;
+  --data-graph: #c79bf2;
+
+  --status-ok: #5bd08c;
+  --status-warn: #f0b24e;
+  --status-error: #f07a6a;
+
+  --shadow-2: 0 8px 32px rgb(0 0 0 / 0.4);
+}
+
+[data-theme="light"] {
+  --color-void: #f6f7fb;
+  --color-surface: #ffffff;
+  --color-raised: #eef1f7;
+  --color-hairline: #d9dee9;
+  --color-text: #161d2e;
+  --color-text-dim: #4c566b;
+  --color-text-faint: #78829a;
+  --color-accent: #8a6a1f;
+  --color-accent-contrast: #ffffff;
+
+  --data-lyra: #0e7fa3;
+  --data-orion: #9a6b12;
+  --data-hydra: #6d4fc4;
+  --data-relational: #1e7d55;
+  --data-vector: #2860c4;
+  --data-graph: #7a4fc0;
+
+  --status-ok: #1d7d4b;
+  --status-warn: #955f00;
+  --status-error: #bf3f30;
+
+  --shadow-2: 0 2px 8px rgb(22 29 46 / 0.08), 0 8px 24px rgb(22 29 46 / 0.1);
+}
+
+@theme inline {
+  --color-void: var(--color-void);
+  --color-surface: var(--color-surface);
+  --color-raised: var(--color-raised);
+  --color-hairline: var(--color-hairline);
+  --color-text: var(--color-text);
+  --color-text-dim: var(--color-text-dim);
+  --color-text-faint: var(--color-text-faint);
+  --color-accent: var(--color-accent);
+  --color-accent-contrast: var(--color-accent-contrast);
+  --color-lyra: var(--data-lyra);
+  --color-orion: var(--data-orion);
+  --color-hydra: var(--data-hydra);
+  --color-relational: var(--data-relational);
+  --color-vector: var(--data-vector);
+  --color-graph: var(--data-graph);
+  --color-ok: var(--status-ok);
+  --color-warn: var(--status-warn);
+  --color-error: var(--status-error);
+
+  /* Two faces only (Fraunces retired 2026-08-05 — clean over bookish):
+     display = Inter at medium weight with tight tracking, set via .display. */
+  --font-sans: "Inter Variable", system-ui, sans-serif;
+  --font-display: "Inter Variable", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-md: 16px;
+  --text-lg: 20px;
+  --text-xl: 25px;
+  --text-2xl: 32px;
+  --text-3xl: 40px;
+  --text-d1: 56px;
+
+  --spacing: 4px;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+}
+
+:root {
+  --motion-fast: 120ms;
+  --motion-base: 200ms;
+  --motion-view: 400ms;
+  --motion-trace: 900ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+    --motion-view: 0ms;
+    --motion-trace: 0ms;
+  }
+}
