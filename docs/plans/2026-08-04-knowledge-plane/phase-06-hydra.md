@@ -12,7 +12,7 @@ shows latency + footprint deltas (this platform's numbers are the quotable ones)
 
 ## Tasks
 
-- [ ] `compose/hydra.yml`: postgres:18, qdrant, memgraph (pinned tags, healthchecks, memory limits)
+- [x] `compose/hydra.yml`: postgres:18, qdrant, memgraph (pinned tags, healthchecks, memory limits)
 - [ ] `planes/vector/qdrant.py` (async client, exclusion via filter)
 - [ ] `planes/graph/memgraph.py` — neo4j async driver, `[*wShortest]` for weighted paths
 - [ ] `make load PLATFORM=hydra`; `make rebuild PLATFORM=hydra` (relational → projections)
@@ -34,3 +34,12 @@ make bench PLATFORM=hydra && make report
 `bench/results/hydra-*.json` (committed), cross-platform report.
 
 ## Progress log
+
+- 2026-08-04 — Phase opened on `feat/hydra`. Infra up: `compose/hydra.yml`
+  (postgres:18.4 @15433, qdrant v1.18.3 @16333/16334, memgraph 3.12.0
+  @17687, project `constellate-hydra`, all healthchecks green).
+  `--storage-light-edge=true` verified compatible with edge properties
+  (edge_type/weight round-trip via mgconsole). Deps: qdrant-client 1.18.0,
+  neo4j 6.2.0. `make rebuild` target added (projections from relational —
+  the CDC proof). Note: ADR 0005 pinned Memgraph 3.12 = image 3.12.0;
+  qdrant healthcheck uses bash /dev/tcp (image ships no curl).

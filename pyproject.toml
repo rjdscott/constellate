@@ -22,6 +22,8 @@ dependencies = [
     "hdrhistogram>=0.10.7",
     "ranx>=0.3.21",
     "asyncpg>=0.31.0",
+    "qdrant-client>=1.18.0",
+    "neo4j>=6.2.0",
 ]
 
 [dependency-groups]

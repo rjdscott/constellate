@@ -10,4 +10,16 @@ data:
   split_cutoff_quantile: 0.95
   embedding_dim: 256
   random_seed: 42
-engines: {}
+engines:
+  relational:
+    dsn: postgresql://constellate:constellate@localhost:15433/constellate
+  vector:
+    adapter: qdrant
+    url: http://localhost:16333
+    grpc_port: 16334
+  graph:
+    adapter: memgraph
+    uri: bolt://localhost:17687
+  # report-layer knob, not part of the platform fingerprint (see orion.yaml)
+  bench:
+    quality_tolerance: 0.02

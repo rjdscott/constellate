@@ -1,6 +1,6 @@
 PLATFORM ?= lyra
 
-.PHONY: check lint type test doc-check seed load up down bench bench-smoke report
+.PHONY: check lint type test doc-check seed load rebuild up down bench bench-smoke report
 
 check: lint type test doc-check
 
@@ -25,11 +25,15 @@ seed:
 load:
 	uv run python -m constellate.load $(PLATFORM)
 
+# drop + regenerate derived projections (vector, graph) from relational only
+rebuild:
+	uv run python -m constellate.load $(PLATFORM) rebuild
+
 up:
 ifeq ($(PLATFORM),lyra)
 	@echo "Lyra is in-process; nothing to start"
 else
-	@mkdir -p data/$(PLATFORM)/age-import  # bind-mount dirs must pre-exist user-owned
+	@mkdir -p data/$(PLATFORM)/age-import data/$(PLATFORM)/import  # bind-mount dirs must pre-exist user-owned
 	docker compose -f compose/$(PLATFORM).yml up -d --wait
 endif
 
