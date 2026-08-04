@@ -33,7 +33,10 @@ def create_app(service: Service | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.service = service or build_service(os.environ.get("PLATFORM", "lyra"))
-        yield
+        try:
+            yield
+        finally:
+            app.state.service.close()
 
     app = FastAPI(title="constellate", lifespan=lifespan)
 

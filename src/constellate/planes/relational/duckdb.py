@@ -51,6 +51,9 @@ class DuckDBRelational:
         )
         return cls(conn)
 
+    def close(self) -> None:
+        self._conn.close()
+
     async def get_user_context(self, user_id: UserId) -> UserContext:
         row = self._conn.execute(
             "SELECT n_train FROM users WHERE user_id = ?", [user_id]

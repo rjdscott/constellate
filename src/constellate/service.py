@@ -25,6 +25,12 @@ class Service:
         self._graph = graph
         self._config = config
 
+    def close(self) -> None:
+        for plane in (self._relational, self._graph):
+            close = getattr(plane, "close", None)
+            if callable(close):
+                close()
+
     async def recommend(self, request: RetrievalRequest) -> RetrievalResponse:
         response = await self._pipeline.retrieve(request)
         items = await self._relational.hydrate([r.item_id for r in response.recommendations])

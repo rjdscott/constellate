@@ -15,6 +15,7 @@ user-seeded graph walks.
 Steps skip when their outputs exist; delete data/lyra/ to rebuild.
 """
 
+import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -62,17 +63,24 @@ def _build_kuzu(canonical: Path, out: Path) -> None:
     )
     nodes = pd.DataFrame({"id": pd.concat([both["src"], both["dst"]]).unique()})
 
-    db = kuzu.Database(str(out / "kuzu"))
+    # build into kuzu.tmp then rename: an interrupted COPY must not leave a
+    # half-built db that the skip-if-exists check would mistake for done
+    tmp_db = out / "kuzu.tmp"
+    if tmp_db.exists():
+        shutil.rmtree(tmp_db)
+    db = kuzu.Database(str(tmp_db))
     conn = kuzu.Connection(db)
     conn.execute("CREATE NODE TABLE Node(id STRING, PRIMARY KEY(id))")
     conn.execute("CREATE REL TABLE Rel(FROM Node TO Node, edge_type STRING, weight DOUBLE)")
     with tempfile.TemporaryDirectory() as tmp:
         nodes.to_parquet(f"{tmp}/nodes.parquet", index=False)
         both.to_parquet(f"{tmp}/rels.parquet", index=False)
-        conn.execute(f"COPY Node FROM '{tmp}/nodes.parquet'")
-        conn.execute(f"COPY Rel FROM '{tmp}/rels.parquet'")
+        esc = tmp.replace("\\", "\\\\").replace("'", "\\'")
+        conn.execute(f"COPY Node FROM '{esc}/nodes.parquet'")
+        conn.execute(f"COPY Rel FROM '{esc}/rels.parquet'")
     conn.close()
     db.close()
+    tmp_db.rename(out / "kuzu")
     print(f"load: kuzu graph {len(nodes):,} nodes, {len(both):,} directed edges")
 
 

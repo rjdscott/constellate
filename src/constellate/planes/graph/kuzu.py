@@ -43,6 +43,9 @@ class KuzuGraph:
             for stmt in SCHEMA:
                 self._conn.execute(stmt)
 
+    def close(self) -> None:
+        self._conn.close()
+
     def _item_id(self, node_id: str) -> ItemId:
         return int(node_id.removeprefix(self._prefix))
 
