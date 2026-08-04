@@ -130,6 +130,7 @@ class Pipeline:
                 score=f.score,
                 sources=f.sources,
                 reason=_render_reason(f.path) if request.explain else None,
+                path=f.path if request.explain else None,
             )
             for rank, f in enumerate(fused[: request.k], start=1)
         ]

@@ -51,6 +51,7 @@ class Recommendation(BaseModel):
     score: float
     sources: list[PlaneName]
     reason: str | None = None  # rendered from path when explain=True
+    path: list[str] | None = None  # same path, unrendered — UIs draw it, humans read `reason`
     metadata: dict[str, object] = Field(default_factory=dict)
 
 

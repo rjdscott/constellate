@@ -23,6 +23,9 @@ EKS-ready artifact, EKS itself deferred.
 
 ## Tasks
 
+- [x] PR A — API foundation (ADR 0011): lazy platform registry + `platform`
+  param + `/v1/platforms`, `/v1/search/items`, `/v1/users/{id}`,
+  `/v1/bench-results`, structured `path` on `Recommendation`, CORS for Vite
 - [ ] `ui/` scaffold: Vite + React + TS + pnpm; Tailwind v4; CI job builds `dist/`
 - [ ] Design tokens FIRST: color system (both themes, accessible chart palette validated per dataviz method), type scale, spacing, elevation; documented in `ui/src/design/README.md`
 - [ ] App shell: navigation, theme toggle, layout grid, state (TanStack Query), API client with base-URL/snapshot-mode config
@@ -50,3 +53,31 @@ make check
 content in `docs/research/2026-08-04-knowledge-plane-foundations/assets/`.
 
 ## Progress log
+
+- 2026-08-05 — Phase opened. Delivery split into five PRs (largest phase;
+  one logical change each): A api-foundation, B ui-scaffold+tokens+shell,
+  C playground+graph, D dashboards+polish+snapshot, E mcp. Design
+  direction set with Rob: **Observatory** identity — celestial dark-first,
+  restrained/instrument-grade ("excellence not gimmicky"), explanation
+  graphs styled as constellations; entry surface = cinematic overview
+  (constellation map of the three platforms, live health, headline
+  numbers). ADR 0011 accepted: one API process, lazy platform registry,
+  `platform` param on retrieval routes, `/v1/platforms` — side-by-side
+  comparison needs it; bench harness stays the only citable latency
+  source. API gaps identified for PR A: `/v1/search` (pickers),
+  `/v1/bench-results` (dashboards), structured `path` on Recommendation
+  (graph view renders typed nodes, not prose reasons).
+- 2026-08-05 — PR A landed. `create_app` holds a lazy per-platform registry
+  (valid platforms = `config/*.yaml`, discovered not hardcoded); unknown
+  platform → 404, build failure → 503 and never cached, lifespan closes
+  every warmed service. Verified all three platforms alive in one process
+  (`/v1/platforms`) with the orion + hydra containers up. New:
+  `/v1/search/items` (relational `search_items` on the plane contract,
+  literal substring via `contains`/`strpos` — a typed `%` is a character,
+  not a wildcard; popularity DESC), `/v1/users/{id}` (404 when the user has
+  no ratings), `/v1/bench-results[/{name}]` (directory listing is also the
+  traversal guard; artifacts keep their own `utc` timestamp key).
+  `Recommendation.path` now carries the unrendered path alongside `reason`
+  under `explain=true`; bench artifacts are unaffected (the harness never
+  serializes recommendations). Conformance gained two relational
+  `search_items` cases (duckdb + postgres).

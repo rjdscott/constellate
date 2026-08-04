@@ -8,7 +8,14 @@ import json
 from constellate.config import PlatformConfig
 from constellate.core.pipeline import Pipeline
 from constellate.core.protocol import GraphPlane, RelationalPlane, VectorPlane
-from constellate.core.types import ItemId, RetrievalRequest, RetrievalResponse
+from constellate.core.types import (
+    Item,
+    ItemId,
+    RetrievalRequest,
+    RetrievalResponse,
+    UserContext,
+    UserId,
+)
 from constellate.ingest import CANONICAL_DIR
 
 
@@ -50,6 +57,12 @@ class Service:
         return await self.recommend(
             RetrievalRequest(seed_item_id=seed_item_id, k=k, explain=explain)
         )
+
+    async def search_items(self, q: str, limit: int = 20) -> list[Item]:
+        return await self._relational.search_items(q, limit)
+
+    async def user_context(self, user_id: UserId) -> UserContext:
+        return await self._relational.get_user_context(user_id)
 
     async def explain(self, a: ItemId, b: ItemId, max_hops: int = 3) -> list[str] | None:
         return await self._graph.path_between(a, b, max_hops)

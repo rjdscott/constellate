@@ -229,3 +229,18 @@ Quality: all three platforms within ±0.02 of each other, hybrid GO
 (127ms, ceilinged) and unified Orion (43ms, scaling). Artifacts:
 `bench/results/hydra-0b36d7c-*.json`, findings in
 `10-hydra-benchmark-findings.md`.
+
+## 2026-08-05 — ADR 0011: one API process, every platform (phase 07 opens)
+
+Phase 07 (explorer + MCP) opened by closing the gap between what the API
+could serve (one platform per process, `$PLATFORM` at startup) and what
+the playground promises (side-by-side platform comparison). ADR 0011:
+a single process holds a lazy platform registry; retrieval routes take an
+optional `platform`; `/v1/platforms` reports what's configured and alive.
+One origin for the SPA, a free `platform` argument for the MCP tools, one
+uvicorn to run — with the explicit commitment that API timings stay
+illustrative and the open-loop bench harness remains the only citable
+latency source. Design direction locked the same day: the Observatory
+identity (celestial dark-first, restrained instrument-grade execution —
+the explanation graphs render as constellations because the project is
+named Constellate) with a cinematic overview as the app's entry surface.
