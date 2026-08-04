@@ -249,7 +249,7 @@ def _git_sha() -> str:
 async def run_bench(platform: str, *, samples: int, warmup: int, skip_latency: bool) -> Path:
     cfg = load_config(platform)
     probes = pd.read_parquet(CANONICAL_DIR / "probes.parquet")
-    service = build_service(platform)
+    service = await build_service(platform)
     try:
         print(f"flows: F1-F6 against {platform} ...")
         flow_results = await run_flows(service, probes, user_id=FLOWS_USER_ID)
@@ -302,6 +302,12 @@ async def run_bench(platform: str, *, samples: int, warmup: int, skip_latency: b
 
     artifact: dict[str, Any] = {
         "platform": platform,
+        # which adapters this run measured (e.g. cte vs age); DSNs stripped —
+        # committed artifacts must not carry credentials, even local ones
+        "engines": {
+            name: {k: v for k, v in engine.items() if k != "dsn"}
+            for name, engine in cfg.engines.items()
+        },
         "git_sha": _git_sha(),
         "utc": datetime.now(UTC).isoformat(timespec="seconds"),
         "config_fingerprint": cfg.fingerprint(),

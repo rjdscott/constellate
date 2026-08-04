@@ -49,18 +49,25 @@ def _build_hnsw(out: Path, seed: int) -> None:
     index.save_index(out / "hnsw.bin")
 
 
-def _build_kuzu(canonical: Path, out: Path) -> None:
+def doubled_edges(canonical: Path) -> pd.DataFrame:
+    """Graph edges in both directions, deduped keep-max-weight — the shared
+    undirected-via-doubling convention every graph adapter stores."""
     edges = pq.read_table(
         canonical / "edges.parquet",
         filters=[("edge_type", "in", list(GRAPH_EDGE_TYPES))],
     ).to_pandas()
     fwd = edges[["src", "dst", "edge_type", "weight"]]
     rev = fwd.rename(columns={"src": "dst", "dst": "src"})[["src", "dst", "edge_type", "weight"]]
-    both = (
+    both: pd.DataFrame = (
         pd.concat([fwd, rev], ignore_index=True)
         .sort_values(["src", "dst", "edge_type", "weight"], ascending=[True, True, True, False])
         .drop_duplicates(["src", "dst", "edge_type"])
     )
+    return both
+
+
+def _build_kuzu(canonical: Path, out: Path) -> None:
+    both = doubled_edges(canonical)
     nodes = pd.DataFrame({"id": pd.concat([both["src"], both["dst"]]).unique()})
 
     # build into kuzu.tmp then rename: an interrupted COPY must not leave a
@@ -114,9 +121,16 @@ def load_lyra(canonical: Path = CANONICAL_DIR, out: Path | None = None) -> None:
 
 def main() -> None:
     platform = sys.argv[1] if len(sys.argv) > 1 else "lyra"
-    if platform != "lyra":
-        sys.exit(f"load: platform {platform!r} lands in a later phase (05: orion, 06: hydra)")
-    load_lyra()
+    if platform == "lyra":
+        load_lyra()
+    elif platform == "orion":
+        import asyncio
+
+        from constellate.load_orion import load_orion
+
+        asyncio.run(load_orion())
+    else:
+        sys.exit(f"load: platform {platform!r} lands in a later phase (06: hydra)")
 
 
 if __name__ == "__main__":

@@ -1,3 +1,45 @@
-# Orion, the unified knowledge plane — one Postgres 18 container (pgvector + AGE).
-# Populated in phase 05 (docs/plans/2026-08-04-knowledge-plane/phase-05-orion.md).
-services: {}
+# Orion, the unified knowledge plane — one Postgres 18 container (ADR 0004).
+#
+# Project name is explicit so `docker ps` / volumes / networks all say which
+# platform you are running (without it, compose would name the project after
+# this directory and every platform would collide in one namespace).
+#
+# Port convention (all platforms runnable simultaneously): host port =
+# engine default + 10000. Orion postgres → 15432. Hydra (phase 06):
+# postgres 15433, qdrant 16333/16334, memgraph 17687. Lyra is in-process,
+# no ports. Override the DSN via $ORION_DSN if 15432 is taken on your box.
+name: constellate-orion
+
+services:
+  orion:
+    build: ../docker/orion
+    image: constellate/orion:pg18-age1.7.0-pgvector0.8
+    container_name: constellate-orion
+    environment:
+      POSTGRES_USER: constellate
+      POSTGRES_PASSWORD: constellate
+      POSTGRES_DB: constellate
+    ports:
+      - "15432:5432"
+    volumes:
+      - orion-data:/var/lib/postgresql
+      # AGE's bulk loader reads CSVs server-side; make load writes them here
+      - ../data/orion/age-import:/tmp/age/age-import:ro
+    # bulk load + HNSW build want memory; box has 62 GB
+    command: >
+      postgres
+      -c shared_buffers=2GB
+      -c maintenance_work_mem=2GB
+      -c max_wal_size=4GB
+    shm_size: 4g
+    healthcheck:
+      # -h 127.0.0.1 forces TCP to the FINAL server: the postgres entrypoint's
+      # temporary init server listens on the unix socket only, and a
+      # socket-based pg_isready can report healthy during that window
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U constellate -d constellate"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  orion-data:

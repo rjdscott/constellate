@@ -41,6 +41,11 @@ Walk every item; each is yes or it gets fixed now, in this PR:
    claims? Grep for the thing you changed; fix staleness now.
 7. **Memory**: durable project facts changed (names, goals, constraints) →
    update memory files.
+8. **Lessons**: anything this phase taught that generalizes → append to
+   `docs/research/2026-08-04-knowledge-plane-foundations/09-lessons-learned.md`
+   (what happened, principle, evidence pointer, post angle). That doc is
+   the end-of-project reflection + public write-up source; a phase that
+   taught nothing is rare enough to say so explicitly.
 
 ## Step 3 — close
 

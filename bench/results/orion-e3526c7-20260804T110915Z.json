@@ -1,0 +1,481 @@
+{
+  "platform": "orion",
+  "engines": {
+    "relational": {
+      "dsn": "postgresql://constellate:constellate@localhost:15432/constellate"
+    },
+    "vector": {
+      "adapter": "pgvector"
+    },
+    "graph": {
+      "adapter": "age"
+    },
+    "bench": {
+      "quality_tolerance": 0.02
+    }
+  },
+  "git_sha": "e3526c7",
+  "utc": "2026-08-04T11:09:15+00:00",
+  "config_fingerprint": "2a486f229ad267a7",
+  "latency_indicative": true,
+  "host": {
+    "machine": "x86_64",
+    "cpu_count": 28,
+    "python": "3.13.11"
+  },
+  "versions": {
+    "numpy": "2.4.6",
+    "duckdb": "1.5.5",
+    "kuzu": "0.11.3",
+    "faiss-cpu": "1.15.0",
+    "ir-measures": "0.4.3",
+    "ranx": "0.3.21"
+  },
+  "flows": [
+    {
+      "flow": "F1",
+      "description": "similar(seed): fused neighbours with explanations",
+      "passed": true,
+      "failures": [],
+      "call_ms": [
+        196.5
+      ]
+    },
+    {
+      "flow": "F2",
+      "description": "personalised top-N for a user",
+      "passed": true,
+      "failures": [],
+      "call_ms": [
+        1557.1
+      ]
+    },
+    {
+      "flow": "F3",
+      "description": "cold-start seed (thin ratings, genome tags)",
+      "passed": true,
+      "failures": [],
+      "call_ms": [
+        256.7
+      ]
+    },
+    {
+      "flow": "F4",
+      "description": "policy-constrained: hard gates filter results",
+      "passed": true,
+      "failures": [],
+      "call_ms": [
+        1543.3
+      ]
+    },
+    {
+      "flow": "F5",
+      "description": "multi-hop explanation path between two items",
+      "passed": true,
+      "failures": [],
+      "call_ms": []
+    },
+    {
+      "flow": "F6",
+      "description": "agent chain x3: similar -> refine with policy -> explain",
+      "passed": true,
+      "failures": [],
+      "call_ms": [
+        165.1,
+        241.1,
+        1.2,
+        213.1,
+        232.7,
+        0.7,
+        173.2,
+        279.0,
+        0.6
+      ]
+    }
+  ],
+  "quality": {
+    "n_probes": 200,
+    "arms": {
+      "vector_only": {
+        "overall": {
+          "R@50": 0.024222222222222225,
+          "nDCG@10": 0.012658851854347553,
+          "R@10": 0.010833333333333335,
+          "RR@10": 0.03113888888888889
+        },
+        "by_kind": {
+          "cold_start": {
+            "R@50": 0.03200000000000001,
+            "nDCG@10": 0.03775876880774846,
+            "R@10": 0.03,
+            "RR@10": 0.09
+          },
+          "cross_genre": {
+            "R@50": 0.017555555555555557,
+            "nDCG@10": 0.0,
+            "R@10": 0.0,
+            "RR@10": 0.0
+          },
+          "path_required": {
+            "R@50": 0.027999999999999997,
+            "nDCG@10": 0.004165465612640321,
+            "R@10": 0.006000000000000001,
+            "RR@10": 0.005555555555555556
+          },
+          "tag_bridge": {
+            "R@50": 0.01933333333333333,
+            "nDCG@10": 0.008711172997001436,
+            "R@10": 0.007333333333333334,
+            "RR@10": 0.028999999999999998
+          }
+        }
+      },
+      "graph_only": {
+        "overall": {
+          "R@50": 0.3515833333333332,
+          "nDCG@10": 0.07516102391292633,
+          "R@10": 0.09650000000000002,
+          "RR@10": 0.1024563492063492
+        },
+        "by_kind": {
+          "cold_start": {
+            "R@50": 0.07800000000000003,
+            "nDCG@10": 0.033145929241962364,
+            "R@10": 0.030000000000000006,
+            "RR@10": 0.09444444444444444
+          },
+          "cross_genre": {
+            "R@50": 1.0,
+            "nDCG@10": 0.2634485017682928,
+            "R@10": 0.35200000000000004,
+            "RR@10": 0.3033809523809523
+          },
+          "path_required": {
+            "R@50": 0.29799999999999993,
+            "nDCG@10": 0.0040496646414501245,
+            "R@10": 0.004,
+            "RR@10": 0.012
+          },
+          "tag_bridge": {
+            "R@50": 0.030333333333333334,
+            "nDCG@10": 0.0,
+            "R@10": 0.0,
+            "RR@10": 0.0
+          }
+        }
+      },
+      "hybrid": {
+        "overall": {
+          "R@50": 0.24732738095238102,
+          "nDCG@10": 0.03638171103792694,
+          "R@10": 0.03755555555555556,
+          "RR@10": 0.07934325396825395
+        },
+        "by_kind": {
+          "cold_start": {
+            "R@50": 0.06400000000000002,
+            "nDCG@10": 0.05097040788388796,
+            "R@10": 0.04400000000000001,
+            "RR@10": 0.13233333333333333
+          },
+          "cross_genre": {
+            "R@50": 0.7859761904761905,
+            "nDCG@10": 0.08891471712805168,
+            "R@10": 0.09888888888888892,
+            "RR@10": 0.17384920634920634
+          },
+          "path_required": {
+            "R@50": 0.11599999999999996,
+            "nDCG@10": 0.001467278441987201,
+            "R@10": 0.002,
+            "RR@10": 0.002857142857142857
+          },
+          "tag_bridge": {
+            "R@50": 0.023333333333333334,
+            "nDCG@10": 0.004174440697780919,
+            "R@10": 0.005333333333333333,
+            "RR@10": 0.008333333333333333
+          }
+        }
+      }
+    },
+    "ablation_delta_hybrid_vs_vector": {
+      "R@50": 0.2231,
+      "nDCG@10": 0.0237,
+      "R@10": 0.0267,
+      "RR@10": 0.0482
+    },
+    "significance": {
+      "stat_test": "student",
+      "metrics": [
+        "recall@10",
+        "ndcg@10"
+      ],
+      "model_names": [
+        "vector_only",
+        "graph_only",
+        "hybrid"
+      ],
+      "vector_only": {
+        "scores": {
+          "recall@10": 0.010833333333333332,
+          "ndcg@10": 0.012658851854347555
+        },
+        "comparisons": {
+          "graph_only": {
+            "recall@10": 6.563011817098793e-09,
+            "ndcg@10": 1.3398773233200822e-07
+          },
+          "hybrid": {
+            "recall@10": 4.1445083037006725e-06,
+            "ndcg@10": 2.8357178933822633e-05
+          }
+        },
+        "win_tie_loss": {
+          "graph_only": {
+            "recall@10": {
+              "W": 10,
+              "T": 138,
+              "L": 52
+            },
+            "ndcg@10": {
+              "W": 11,
+              "T": 137,
+              "L": 52
+            }
+          },
+          "hybrid": {
+            "recall@10": {
+              "W": 3,
+              "T": 167,
+              "L": 30
+            },
+            "ndcg@10": {
+              "W": 7,
+              "T": 161,
+              "L": 32
+            }
+          }
+        }
+      },
+      "graph_only": {
+        "scores": {
+          "recall@10": 0.09649999999999999,
+          "ndcg@10": 0.0751610239129263
+        },
+        "comparisons": {
+          "vector_only": {
+            "recall@10": 6.563011817098793e-09,
+            "ndcg@10": 1.3398773233200822e-07
+          },
+          "hybrid": {
+            "recall@10": 1.207352290378267e-06,
+            "ndcg@10": 9.661262465726805e-06
+          }
+        },
+        "win_tie_loss": {
+          "vector_only": {
+            "recall@10": {
+              "W": 52,
+              "T": 138,
+              "L": 10
+            },
+            "ndcg@10": {
+              "W": 52,
+              "T": 137,
+              "L": 11
+            }
+          },
+          "hybrid": {
+            "recall@10": {
+              "W": 42,
+              "T": 148,
+              "L": 10
+            },
+            "ndcg@10": {
+              "W": 52,
+              "T": 138,
+              "L": 10
+            }
+          }
+        }
+      },
+      "hybrid": {
+        "scores": {
+          "recall@10": 0.03755555555555556,
+          "ndcg@10": 0.03638171103792694
+        },
+        "comparisons": {
+          "vector_only": {
+            "recall@10": 4.1445083037006725e-06,
+            "ndcg@10": 2.8357178933822633e-05
+          },
+          "graph_only": {
+            "recall@10": 1.207352290378267e-06,
+            "ndcg@10": 9.661262465726805e-06
+          }
+        },
+        "win_tie_loss": {
+          "vector_only": {
+            "recall@10": {
+              "W": 30,
+              "T": 167,
+              "L": 3
+            },
+            "ndcg@10": {
+              "W": 32,
+              "T": 161,
+              "L": 7
+            }
+          },
+          "graph_only": {
+            "recall@10": {
+              "W": 10,
+              "T": 148,
+              "L": 42
+            },
+            "ndcg@10": {
+              "W": 10,
+              "T": 138,
+              "L": 52
+            }
+          }
+        }
+      }
+    },
+    "coverage": {
+      "vector_only": 0.0192,
+      "graph_only": 0.0172,
+      "hybrid": 0.0202
+    },
+    "novelty": {
+      "vector_only": 19.49,
+      "graph_only": 13.04,
+      "hybrid": 16.44
+    }
+  },
+  "fusion_tuning": {
+    "metric": "nDCG@10",
+    "rrf_k": 60,
+    "validation_size": 100,
+    "test_size": 100,
+    "validation_scores": {
+      "0.25": 0.0095,
+      "0.5": 0.0091,
+      "0.75": 0.0083,
+      "1.0": 0.0305,
+      "1.5": 0.0564,
+      "2.0": 0.0585
+    },
+    "best_graph_weight": 2.0,
+    "test": {
+      "baseline_w1.0": {
+        "R@50": 0.26914285714285713,
+        "nDCG@10": 0.042291134038486285,
+        "R@10": 0.03766666666666667,
+        "RR@10": 0.09916666666666667
+      },
+      "tuned": {
+        "R@50": 0.36666666666666664,
+        "nDCG@10": 0.06713617160244746,
+        "R@10": 0.0786190476190476,
+        "RR@10": 0.12369047619047616
+      }
+    },
+    "fidelity_check": {
+      "offline_w1.0_full_set": {
+        "R@50": 0.24732738095238102,
+        "nDCG@10": 0.03638171103792694,
+        "R@10": 0.03755555555555556,
+        "RR@10": 0.07934325396825395
+      },
+      "pipeline_hybrid_arm": {
+        "R@50": 0.24732738095238102,
+        "nDCG@10": 0.03638171103792694,
+        "R@10": 0.03755555555555556,
+        "RR@10": 0.07934325396825395
+      }
+    }
+  },
+  "latency": {
+    "workload": "hybrid similar(seed), k=10, probe seeds round-robin",
+    "calibration": {
+      "warm_mean_ms": 221.1,
+      "est_capacity_hz": 4.5
+    },
+    "runs": [
+      {
+        "rate_hz": 3.2,
+        "concurrency": 1,
+        "samples": 2000,
+        "warmup": 200,
+        "recorded": 2000,
+        "errors": 0,
+        "warmup_errors": 0,
+        "duration_s": 687.4698205329478,
+        "completion_hz": 3.2001404778678024,
+        "percentiles_ms": {
+          "p50": 248.703,
+          "p95": 363.775,
+          "p99": 426.495,
+          "p99.9": 495.103
+        },
+        "max_ms": 510.719
+      },
+      {
+        "rate_hz": 3.2,
+        "concurrency": 8,
+        "samples": 2000,
+        "warmup": 200,
+        "recorded": 2000,
+        "errors": 0,
+        "warmup_errors": 0,
+        "duration_s": 687.4021307899384,
+        "completion_hz": 3.2004556015440877,
+        "percentiles_ms": {
+          "p50": 249.599,
+          "p95": 365.055,
+          "p99": 434.175,
+          "p99.9": 495.615
+        },
+        "max_ms": 505.599
+      },
+      {
+        "rate_hz": 3.2,
+        "concurrency": 32,
+        "samples": 2000,
+        "warmup": 200,
+        "recorded": 2000,
+        "errors": 0,
+        "warmup_errors": 0,
+        "duration_s": 687.4016947099008,
+        "completion_hz": 3.2004576318777485,
+        "percentiles_ms": {
+          "p50": 243.839,
+          "p95": 356.607,
+          "p99": 426.495,
+          "p99.9": 481.791
+        },
+        "max_ms": 502.527
+      },
+      {
+        "rate_hz": 5.4,
+        "concurrency": 32,
+        "samples": 2000,
+        "warmup": 200,
+        "recorded": 2000,
+        "errors": 0,
+        "warmup_errors": 0,
+        "duration_s": 407.4741440839134,
+        "completion_hz": 5.399115580562927,
+        "percentiles_ms": {
+          "p50": 259.071,
+          "p95": 428.287,
+          "p99": 480.511,
+          "p99.9": 541.695
+        },
+        "max_ms": 547.327
+      }
+    ]
+  }
+}

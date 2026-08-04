@@ -32,7 +32,7 @@ class ExplainRequest(BaseModel):
 def create_app(service: Service | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        app.state.service = service or build_service(os.environ.get("PLATFORM", "lyra"))
+        app.state.service = service or await build_service(os.environ.get("PLATFORM", "lyra"))
         try:
             yield
         finally:

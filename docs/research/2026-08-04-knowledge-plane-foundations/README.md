@@ -18,7 +18,9 @@
 | `04-migration-narrative.md` | dated milestone log (ADR acceptances, phase completions) — the talk arc |
 | `05-embeddings-and-benchmarks.md` | embedding strategy, dataset choice, metrics + latency methodology |
 | `06-ui-and-mcp.md` | explorer UI stack, graph viz library, MCP server approach |
-| `07-lyra-benchmark-findings.md` | phase-04 go/no-go results, per-kind analysis, platform config & tuning record (one findings doc per platform; Orion/Hydra follow) |
+| `07-lyra-benchmark-findings.md` | phase-04 go/no-go results, per-kind analysis, platform config & tuning record (one findings doc per platform) |
+| `08-orion-benchmark-findings.md` | phase-05 results: exact graph equivalence, pgvector recall delta, the single-process-ceiling finding, CTE-vs-AGE delta, config record |
+| `09-lessons-learned.md` | living cross-phase lessons doc (append per phase) — feeds end-of-project reflection and public write-ups |
 
 ## Naming map (ADR 0009, decided after these docs were written)
 

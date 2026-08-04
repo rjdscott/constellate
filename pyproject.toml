@@ -21,6 +21,7 @@ dependencies = [
     "ir-measures>=0.4.3",
     "hdrhistogram>=0.10.7",
     "ranx>=0.3.21",
+    "asyncpg>=0.31.0",
 ]
 
 [dependency-groups]
@@ -32,6 +33,7 @@ dev = [
     "types-pyyaml",
     "pandas-stubs",
     "httpx",
+    "asyncpg-stubs>=0.31.3",
 ]
 
 [tool.uv.sources]

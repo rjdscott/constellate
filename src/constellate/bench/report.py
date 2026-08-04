@@ -11,9 +11,51 @@ import json
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 RESULTS_DIR = Path(__file__).resolve().parents[3] / "bench" / "results"
 REPORT_PATH = RESULTS_DIR.parent / "report.md"
+CONFIG_DIR = Path(__file__).resolve().parents[3] / "config"
 P_THRESHOLD = 0.05
+EQUIVALENCE_METRICS = ("R@10", "nDCG@10")
+
+
+def _quality_tolerance(platform: str) -> float | None:
+    """Equivalence tolerance vs Lyra — stated in config/<platform>.yaml under
+    engines.bench (raw yaml read: a bench parameter, deliberately outside the
+    PlatformConfig model so platform fingerprints stay comparable)."""
+    path = CONFIG_DIR / f"{platform}.yaml"
+    if not path.is_file():
+        return None
+    raw = yaml.safe_load(path.read_text())
+    value = raw.get("engines", {}).get("bench", {}).get("quality_tolerance")
+    return float(value) if value is not None else None
+
+
+def equivalence(artifacts: dict[str, dict[str, Any]]) -> list[str]:
+    """Hybrid-arm quality deltas of every non-Lyra platform vs the newest
+    Lyra run — within tolerance proves the abstraction holds (phase 05)."""
+    lyra = [a for a in artifacts.values() if a["platform"] == "lyra"]
+    others = {name: a for name, a in artifacts.items() if a["platform"] != "lyra"}
+    if not lyra or not others:
+        return []
+    base = lyra[-1]["quality"]["arms"]["hybrid"]["overall"]
+    lines = [
+        "## Cross-platform quality equivalence (hybrid arm, vs Lyra)",
+        "",
+        "| run | " + " | ".join(EQUIVALENCE_METRICS) + " | tolerance | verdict |",
+        "|---|" + "---|" * (len(EQUIVALENCE_METRICS) + 2),
+    ]
+    for name, artifact in others.items():
+        overall = artifact["quality"]["arms"]["hybrid"]["overall"]
+        deltas = {m: overall[m] - base[m] for m in EQUIVALENCE_METRICS}
+        tolerance = _quality_tolerance(artifact["platform"])
+        ok = tolerance is not None and all(abs(d) <= tolerance for d in deltas.values())
+        cells = " | ".join(f"{deltas[m]:+.4f}" for m in EQUIVALENCE_METRICS)
+        tol = f"±{tolerance}" if tolerance is not None else "unset"
+        lines.append(f"| {name} | {cells} | {tol} | {'within' if ok else '**OUTSIDE**'} |")
+    lines.append("")
+    return lines
 
 
 def _p_value(artifact: dict[str, Any], metric: str = "recall@10") -> float | None:
@@ -128,22 +170,28 @@ def _run_section(artifact: dict[str, Any], name: str) -> list[str]:
     return lines
 
 
+def _graph_adapter(artifact: dict[str, Any]) -> str:
+    engines = artifact.get("engines") or {}
+    return str(engines.get("graph", {}).get("adapter", "-"))
+
+
 def render_markdown(artifacts: dict[str, dict[str, Any]]) -> str:
     lines = ["# Constellate benchmark report", ""]
     if len(artifacts) > 1:
         lines += [
-            "| run | platform | sha | hybrid R@10 | delta vs vector | verdict |",
-            "|---|---|---|---|---|---|",
+            "| run | platform | graph | sha | hybrid R@10 | delta vs vector | verdict |",
+            "|---|---|---|---|---|---|---|",
         ]
         for name, artifact in artifacts.items():
             word, _ = verdict(artifact)
             hybrid = artifact["quality"]["arms"]["hybrid"]["overall"]["R@10"]
             delta = artifact["quality"]["ablation_delta_hybrid_vs_vector"]["R@10"]
             lines.append(
-                f"| {name} | {artifact['platform']} | {artifact['git_sha']} "
-                f"| {hybrid:.4f} | {delta:+.4f} | {word} |"
+                f"| {name} | {artifact['platform']} | {_graph_adapter(artifact)} "
+                f"| {artifact['git_sha']} | {hybrid:.4f} | {delta:+.4f} | {word} |"
             )
         lines.append("")
+    lines += equivalence(artifacts)
     for name, artifact in artifacts.items():
         lines += _run_section(artifact, name)
     return "\n".join(lines)

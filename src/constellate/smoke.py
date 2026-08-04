@@ -35,7 +35,7 @@ def _show(name: str, response: RetrievalResponse) -> None:
 
 
 async def main(platform: str = "lyra") -> None:
-    service = build_service(platform)
+    service = await build_service(platform)
     _show("F1 similar(318 Shawshank)", await service.similar(318, k=10, explain=True))
     _show(
         "F2 personalised(user 1)",

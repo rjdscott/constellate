@@ -15,14 +15,11 @@ instead of silently allowing everything through.
 
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Any
 
 import duckdb
 
-from constellate.core.errors import KnowledgePlaneError
 from constellate.core.types import Item, ItemId, UserContext, UserId
-
-POLICY_KEYS = frozenset({"min_year", "max_year", "genres_any", "genres_exclude", "min_ratings"})
+from constellate.planes.relational.policy import filter_by_policy
 
 
 class DuckDBRelational:
@@ -86,29 +83,13 @@ class DuckDBRelational:
     async def apply_policy(
         self, ids: Sequence[ItemId], ctx: UserContext | None, policy: dict[str, object]
     ) -> list[ItemId]:
-        unknown = set(policy) - POLICY_KEYS
-        if unknown:
-            raise KnowledgePlaneError(f"unknown policy keys: {sorted(unknown)}")
-        if not ids:
-            return []
         if not policy:
+            filter_by_policy([], policy)  # still validates the (empty) vocabulary
             return list(ids)
-        items = await self.hydrate(ids)
-        p: dict[str, Any] = policy
-        out: list[ItemId] = []
-        for item in items:
-            if "min_year" in p and (item.year is None or item.year < p["min_year"]):
-                continue
-            if "max_year" in p and (item.year is None or item.year > p["max_year"]):
-                continue
-            if "genres_any" in p and not set(item.genres) & set(p["genres_any"]):
-                continue
-            if "genres_exclude" in p and set(item.genres) & set(p["genres_exclude"]):
-                continue
-            if "min_ratings" in p and item.n_ratings < p["min_ratings"]:
-                continue
-            out.append(item.item_id)
-        return out
+        if not ids:
+            filter_by_policy([], policy)
+            return []
+        return filter_by_policy(await self.hydrate(ids), policy)
 
     async def exclusions(self, user_id: UserId) -> set[ItemId]:
         rows = self._conn.execute(
