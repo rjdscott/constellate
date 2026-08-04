@@ -8,8 +8,8 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Route, Routes } from 'react-router'
 
 import Shell from './app/Shell.tsx'
+import Bench from './routes/Bench.tsx'
 import Overview from './routes/Overview.tsx'
-import { Bench } from './routes/Placeholder.tsx'
 import Playground from './routes/Playground.tsx'
 
 const queryClient = new QueryClient({
