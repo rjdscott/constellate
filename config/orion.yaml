@@ -16,7 +16,7 @@ engines:
   vector:
     adapter: pgvector      # HNSW on halfvec, iterative scans (ADR 0004)
   graph:
-    adapter: age           # cte (default, the thesis) | age (second adapter)
+    adapter: cte           # cte (default, the thesis) | age (second adapter)
   bench:
     # quality-equivalence gate vs Lyra (phase-05 verification): hybrid-arm
     # metric deltas beyond this are a conformance failure, not a finding.

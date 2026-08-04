@@ -18,7 +18,7 @@ matching Lyra within tolerance, proving the abstraction holds.
 - [x] `planes/graph/cte.py` — covering index `(src, edge_type) INCLUDE (dst, weight)`, explicit self-joins for fixed 2–3 hop (full per-hop aggregation kept over top-k LATERAL: mirrors kuzu support semantics exactly, see progress log)
 - [x] `planes/graph/age.py` — same conformance suite, unchanged
 - [x] `make load PLATFORM=orion`; `make up/down PLATFORM=orion`
-- [ ] Bench run; quality-equivalence check vs Lyra (tolerance stated in config)
+- [x] Bench run; quality-equivalence check vs Lyra (tolerance stated in config) — both arms within ±0.02 (report equivalence table); CTE-vs-AGE delta measured ~6×
 
 ## Verification
 
@@ -87,3 +87,13 @@ make bench PLATFORM=orion && make report   # quality within tolerance of Lyra; C
   unused pgvector dep dropped, "mirrors kuzu exactly" docstrings scoped
   to ranking equivalence. AGE-arm bench (2,000 latency samples,
   disclosed) running.
+- 2026-08-04 — **AGE-arm bench + phase close.** Quality identical to the
+  CTE arm on every metric (fourth adapter producing graph R@10 0.0965 to
+  4 decimals — ranking-contract equivalence total); latency CTE ~6×
+  faster than AGE (p50 43.6 ms vs 243.8 ms) — the ADR 0004 published
+  delta, measured; thesis correctly rests on the CTE adapter. Equivalence
+  vs Lyra: hybrid +0.0021 R@10 / +0.0002 nDCG@10, within ±0.02 tolerance
+  — **the abstraction holds**. Artifacts committed (2 orion runs),
+  report regenerated with cross-platform equivalence table, findings doc
+  08 complete, lessons L2/L3/L5 appended to 09, narrative milestone
+  written. Phase gate walked; 🟢.

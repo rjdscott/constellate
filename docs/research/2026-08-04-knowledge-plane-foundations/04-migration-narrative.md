@@ -176,3 +176,27 @@ reconstruction of the online system, fidelity checks are cheap, and the
 final numbers (GO verdict, +24% tuned nDCG on held-out probes, grid-edge
 caveat) now rest on a tuner that provably fuses what the pipeline fuses.
 Final artifact: `bench/results/lyra-f7eb799-20260804T082917Z.json`.
+
+## 2026-08-04 — Phase 05: one Postgres holds the line, and the ceiling was never the network
+
+Orion, the unified knowledge plane, went from empty container to committed
+benchmark in a day: PG 18.1 + AGE 1.7.0 + pgvector 0.8.6 in one image,
+25M rows COPYed in 43 seconds, all four new adapters through the unchanged
+conformance suite on their first live run — where Kuzu had needed three
+planner-trap rewrites, Postgres pushed every parameterized plan without
+drama. The headline is equivalence: graph retrieval identical to Lyra to
+four decimals (R@10 0.0965) across Kuzu, SQL self-joins, and AGE Cypher,
+because the contract was engineered at ranking semantics, not query
+syntax. The upset is latency: the daemon-and-TCP platform is ~3× *faster*
+than the embedded one (p50 43 ms vs 127 ms) and kept scaling where Lyra's
+single process flat-lined — the embedded ceiling was never the missing
+network hop. The honest deltas: pgvector's HNSW-on-halfvec halves
+vector-only recall against the exact-search referee (concentrated on cold
+start), hybrid still lands within tolerance; and the ADR 0004 wager paid
+out measured — CTE beats AGE ~6× (p50 43 ms vs 244 ms), so the thesis
+rests on plain SQL with AGE as the ergonomics arm. Review pass again
+earned its keep: non-atomic load steps (crash + rerun would duplicate 25M
+rows) and a CI hole where the entire Orion surface could silently
+deregister — both fixed before merge. Lessons L2, L3, L5 landed in the
+new living lessons doc (`09-lessons-learned.md`). Artifacts:
+`bench/results/orion-*.json` × 2, findings in `08-orion-benchmark-findings.md`.

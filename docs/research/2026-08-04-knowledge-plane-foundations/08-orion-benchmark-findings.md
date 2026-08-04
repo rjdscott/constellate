@@ -88,7 +88,28 @@ hops. AGE-arm bench numbers land below; its latency run used 2,000
 samples (AGE's ~2.5/s single-stream capacity makes 5,000-sample sweeps a
 multi-hour affair; p50/p95 are trustworthy at 2,000, read p99 with care).
 
-<!-- AGE-ARM-RESULTS -->
+AGE-arm run `orion-e3526c7-20260804T110915Z` (2,000 latency samples):
+
+- **Quality: identical to the CTE arm on every metric** (graph_only R@10
+  0.0965, hybrid nDCG@10 0.0364, fidelity exact). Four graph adapters
+  across two platforms now produce the same retrieval to 4 decimals —
+  ranking-contract equivalence (L2) holds for AGE too. R@50 differs in
+  the 3rd decimal (0.2473 vs 0.2462): deep-tail tie-ordering, the only
+  daylight between the arms.
+- **Latency: CTE ~6× faster than AGE** — the ADR 0004 delta, measured:
+
+| arm | warm mean | p50 | p95 | p99 (read with care at n=2000) |
+|---|---|---|---|---|
+| CTE @18.4/s c32 | 38 ms | 43.6 | 75.4 | 90.2 |
+| AGE @3.2/s c32 | 221 ms | 243.8 | 356.6 | 426.5 |
+
+  AGE at 1.2× estimated capacity (5.4/s) degrades mildly (p50 259 ms) —
+  the Postgres server still absorbs concurrency; the cost is per-query
+  Cypher→plan compilation and the unindexed property-anchored MATCHes,
+  exactly research 03's "AGE buys syntax, not speed" at 2–3 hops.
+  Conclusion the ADR predicted: the thesis rests correctly on the CTE
+  adapter; AGE remains the ergonomics arm, revisit at 1.8.0
+  (`shortest_path`, predicate functions).
 
 ## Platform configuration & tuning record
 

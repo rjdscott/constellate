@@ -25,4 +25,4 @@ Conventions for `docs/plans/`. A plan executes decisions already recorded in
 
 | Plan | Goal | Status |
 |------|------|--------|
-| [2026-08-04-knowledge-plane](2026-08-04-knowledge-plane/README.md) | Three-platform knowledge plane experiment (Lyra/Orion/Hydra — the embedded/unified/composed knowledge planes): probe-set ablation proof, cross-platform equivalence, latency/footprint deltas, explorer UI, MCP | 🟡 In progress (01–04 🟢, go/no-go answered GO; next: 05 orion) |
+| [2026-08-04-knowledge-plane](2026-08-04-knowledge-plane/README.md) | Three-platform knowledge plane experiment (Lyra/Orion/Hydra — the embedded/unified/composed knowledge planes): probe-set ablation proof, cross-platform equivalence, latency/footprint deltas, explorer UI, MCP | 🟡 In progress (01–05 🟢, abstraction proven across platforms; next: 06 hydra) |
