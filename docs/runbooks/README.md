@@ -28,3 +28,4 @@ exactly what to type and what they should see.
 | [seed-the-dataset](seed-the-dataset.md) | Build/rebuild `data/canonical/` from ml-25m; verify against MANIFEST |
 | [run-lyra](run-lyra.md) | Bring up Lyra end to end: load, smoke flows, REST API, adapter ablation |
 | [run-benchmarks](run-benchmarks.md) | Produce a committed benchmark artifact + report; go/no-go verdict |
+| [run-orion](run-orion.md) | Bring up Orion: container, load, conformance, CTE↔AGE switch, bench |
