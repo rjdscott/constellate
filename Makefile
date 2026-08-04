@@ -5,8 +5,8 @@ PLATFORM ?= lyra
 check: lint type test doc-check
 
 lint:
-	uv run ruff check src tests scripts
-	uv run ruff format --check src tests scripts
+	uv run ruff check src tests scripts bench
+	uv run ruff format --check src tests scripts bench
 
 doc-check:
 	uv run python scripts/check_docs.py
@@ -20,7 +20,7 @@ test:
 # --- lifecycle stubs: implemented phase by phase (docs/plans/2026-08-04-knowledge-plane/) ---
 
 seed:
-	@echo "make seed: implemented in phase 02" && exit 1
+	uv run python -m constellate.ingest.seed
 
 load:
 	@echo "make load PLATFORM=$(PLATFORM): implemented in phase 03+" && exit 1
