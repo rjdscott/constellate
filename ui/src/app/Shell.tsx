@@ -215,7 +215,7 @@ export default function Shell() {
           initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: motionSeconds('--motion-view'), ease: EASE_STANDARD }}
-          className="relative flex-1 overflow-y-auto"
+          className="relative min-w-0 flex-1 overflow-y-auto"
         >
           <Outlet />
         </motion.main>

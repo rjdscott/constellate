@@ -87,5 +87,54 @@ export interface BenchResultEntry {
 /** `GET /v1/health` */
 export type Health = Record<string, string>
 
+/** `GET /v1/bench-results/{name}` — the committed harness artifacts
+ *  (`bench/results/*.json`). Mirrors `src/constellate/bench/report.py`'s
+ *  output; only the keys the dashboards actually read are typed here —
+ *  `by_kind`, `fusion_tuning`, `flows`, `engine_state` etc. pass through
+ *  untyped call sites don't need. */
+export type QualityMetrics = {
+  'R@10': number
+  'R@50': number
+  'RR@10': number
+  'nDCG@10': number
+}
+
+export type QualityArm = 'vector_only' | 'graph_only' | 'hybrid'
+
+export interface LatencyRun {
+  rate_hz: number
+  concurrency: number
+  samples: number
+  recorded: number
+  errors: number
+  percentiles_ms: { p50: number; p95: number; p99: number; 'p99.9': number }
+  max_ms: number
+}
+
+export interface BenchArtifact {
+  platform: string
+  git_sha: string
+  utc: string
+  config_fingerprint: string
+  latency_indicative: boolean
+  quality: {
+    arms: Record<QualityArm, { overall: QualityMetrics }>
+    ablation_delta_hybrid_vs_vector: QualityMetrics
+    significance: {
+      stat_test: string
+      hybrid: {
+        comparisons: {
+          vector_only: { 'recall@10': number; 'ndcg@10': number }
+        }
+      }
+    }
+  }
+  latency: {
+    workload: string
+    calibration: { warm_mean_ms: number; est_capacity_hz: number }
+    runs: LatencyRun[]
+  }
+}
+
 /** `GET /v1/tags` — genome tag id → name, e.g. {"742": "zombies"}. */
 export type TagNames = Record<string, string>

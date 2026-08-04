@@ -8,6 +8,7 @@ import { recommend, useItems, useSearchItems, useUserContext } from '../lib/api.
 import { tidyTitle } from '../lib/format.ts'
 import { isPlatformId, PLATFORM_IDS, PLATFORM_META, type PlatformId } from '../lib/platforms.ts'
 import type { PlaneName, RetrievalRequest } from '../lib/types.ts'
+import { useDocumentTitle } from '../lib/useDocumentTitle.ts'
 
 type Mode = 'seed' | 'user'
 type MaxHops = 1 | 2 | 3
@@ -109,13 +110,16 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function SeedPicker({ seedId, onPick }: { seedId: number | null; onPick: (id: number | null) => void }) {
   const [query, setQuery] = useState('')
   const [debounced, setDebounced] = useState('')
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [closed, setClosed] = useState(false) // Escape dismisses without clearing the typed query
   useEffect(() => {
     const t = setTimeout(() => setDebounced(query), 200)
     return () => clearTimeout(t)
   }, [query])
   const search = useSearchItems(debounced.trim().length >= 2 ? debounced : '')
   const selected = useItems(seedId !== null ? [seedId] : [])
-  const open = debounced.trim().length >= 2 && (search.data?.length ?? 0) > 0
+  const results = search.data ?? []
+  const open = !closed && debounced.trim().length >= 2 && results.length > 0
 
   if (seedId !== null) {
     const title = selected.data?.[0] ? tidyTitle(selected.data[0].title).title : `#${seedId}`
@@ -129,27 +133,62 @@ function SeedPicker({ seedId, onPick }: { seedId: number | null; onPick: (id: nu
     )
   }
 
+  function pick(index: number) {
+    const item = results[index]
+    if (!item) return
+    onPick(item.item_id)
+    setQuery('')
+  }
+
   return (
     <div className="relative">
       <input
         value={query}
-        onChange={(e) => setQuery(e.target.value)}
+        onChange={(e) => {
+          setQuery(e.target.value)
+          setActiveIndex(0)
+          setClosed(false)
+        }}
+        onKeyDown={(e) => {
+          if (!open) return
+          if (e.key === 'ArrowDown') {
+            e.preventDefault()
+            setActiveIndex((i) => Math.min(i + 1, results.length - 1))
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault()
+            setActiveIndex((i) => Math.max(i - 1, 0))
+          } else if (e.key === 'Enter') {
+            e.preventDefault()
+            pick(activeIndex)
+          } else if (e.key === 'Escape') {
+            e.preventDefault()
+            setClosed(true)
+          }
+        }}
         placeholder="Search a movie…"
-        className="w-full rounded-sm border border-hairline bg-transparent px-2.5 py-1.5 text-sm text-text placeholder:text-text-faint focus:border-text-faint focus:outline-none"
+        role="combobox"
+        aria-expanded={open}
+        aria-controls="seed-picker-listbox"
+        aria-activedescendant={open ? `seed-picker-option-${activeIndex}` : undefined}
+        className="w-full rounded-sm border border-hairline bg-transparent px-2.5 py-1.5 text-sm text-text placeholder:text-text-faint focus:border-text-faint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       />
       {open && (
-        <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-sm border border-hairline bg-surface shadow-[var(--shadow-2)]">
-          {search.data!.map((item) => {
+        <ul
+          id="seed-picker-listbox"
+          role="listbox"
+          className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-sm border border-hairline bg-surface shadow-[var(--shadow-2)]"
+        >
+          {results.map((item, index) => {
             const { title, year } = tidyTitle(item.title)
             return (
-              <li key={item.item_id}>
+              <li key={item.item_id} id={`seed-picker-option-${index}`} role="option" aria-selected={index === activeIndex}>
                 <button
                   type="button"
-                  onClick={() => {
-                    onPick(item.item_id)
-                    setQuery('')
-                  }}
-                  className="flex w-full items-baseline justify-between gap-2 px-2.5 py-1.5 text-left text-sm hover:bg-raised"
+                  onMouseEnter={() => setActiveIndex(index)}
+                  onClick={() => pick(index)}
+                  className={`flex w-full items-baseline justify-between gap-2 px-2.5 py-1.5 text-left text-sm ${
+                    index === activeIndex ? 'bg-raised' : ''
+                  }`}
                 >
                   <span className="truncate text-text">
                     {title} {year && <span className="text-text-faint">{year}</span>}
@@ -179,7 +218,7 @@ function UserPicker({ userId, onChange }: { userId: number | null; onChange: (id
         onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
         onBlur={() => setToValidate(userId)}
         placeholder="User id"
-        className="w-full rounded-sm border border-hairline bg-transparent px-2.5 py-1.5 text-sm text-text placeholder:text-text-faint focus:border-text-faint focus:outline-none"
+        className="w-full rounded-sm border border-hairline bg-transparent px-2.5 py-1.5 text-sm text-text placeholder:text-text-faint focus:border-text-faint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       />
       {toValidate !== null && toValidate === userId && (
         <p className="mt-1 text-xs">
@@ -192,6 +231,7 @@ function UserPicker({ userId, onChange }: { userId: number | null; onChange: (id
 }
 
 export default function Playground() {
+  useDocumentTitle('Playground')
   const [searchParams, setSearchParams] = useSearchParams()
   const state = useMemo(() => readState(searchParams), [searchParams])
   const update = useCallback(

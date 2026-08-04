@@ -17,7 +17,11 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.responses import Response
+from starlette.types import Scope
 
 from constellate.config import CONFIG_DIR
 from constellate.core.types import (
@@ -33,6 +37,8 @@ from constellate.service import Service, load_tags
 
 PLATFORMS = sorted(p.stem for p in CONFIG_DIR.glob("*.yaml"))  # config/ is the registry
 RESULTS_DIR = Path(__file__).resolve().parents[3] / "bench" / "results"
+UI_DIST_DIR = Path(__file__).resolve().parents[3] / "ui" / "dist"  # module attr, same as
+# RESULTS_DIR/TAGS_PATH — tests monkeypatch this before calling create_app()
 DEV_ORIGIN = "http://localhost:5173"  # vite dev server
 MAX_ITEM_IDS = 100  # /v1/items — one hydrate round trip caps out here
 
@@ -47,6 +53,26 @@ class ExplainRequest(BaseModel):
     a: ItemId
     b: ItemId
     max_hops: int = 3
+
+
+class SPAStaticFiles(StaticFiles):
+    """`ui/dist`, serving `index.html` for any path the SPA owns (react-router
+    client-side routes like `/playground`) instead of Starlette's default 404 —
+    the standard FastAPI SPA pattern. Mounted at `/` *after* every `/v1/*`
+    route below, so those routes always match first and are never shadowed."""
+
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        try:
+            return await super().get_response(path, scope)
+        except StarletteHTTPException as exc:
+            # A malformed /v1/* path (e.g. a traversal attempt normalized down
+            # to something no route matches) must still 404, not silently
+            # become the SPA shell — only genuine SPA routes fall back.
+            request_path = str(scope["path"])
+            is_api_path = request_path == "/v1" or request_path.startswith("/v1/")
+            if exc.status_code == 404 and not is_api_path:
+                return await super().get_response("index.html", scope)
+            raise
 
 
 def create_app(service: Service | None = None) -> FastAPI:
@@ -187,6 +213,9 @@ def create_app(service: Service | None = None) -> FastAPI:
             raise HTTPException(404, f"no bench result {name!r}")
         artifact: dict[str, object] = json.loads((RESULTS_DIR / f"{name}.json").read_text())
         return artifact
+
+    if UI_DIST_DIR.is_dir():
+        app.mount("/", SPAStaticFiles(directory=UI_DIST_DIR, html=True), name="ui")
 
     return app
 

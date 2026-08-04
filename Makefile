@@ -5,7 +5,7 @@ PLATFORM ?= lyra
 BIND_DIRS_orion = data/orion/age-import
 BIND_DIRS_hydra = data/hydra/import
 
-.PHONY: check lint type test doc-check seed load rebuild up down bench bench-smoke report
+.PHONY: check lint type test doc-check seed load rebuild up down bench bench-smoke report ui-snapshot
 
 check: lint type test doc-check
 
@@ -59,3 +59,8 @@ bench:
 
 report:
 	uv run python -m constellate.bench.report
+
+# ui/public/snapshot/ from committed bench artifacts + config/*.yaml — feeds
+# `VITE_UI_MODE=snapshot pnpm build` (a static build with no API behind it)
+ui-snapshot:
+	uv run python scripts/build_ui_snapshot.py

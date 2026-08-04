@@ -127,3 +127,12 @@
     }
   }
 }
+
+/* Tailwind's own animate-pulse (skeletons, throughout) ships a hardcoded 2s
+ * infinite loop that prefers-reduced-motion doesn't touch on its own.
+ * Unlayered so it beats the utilities layer regardless of source order. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse {
+    animation: none;
+  }
+}

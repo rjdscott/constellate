@@ -231,6 +231,23 @@ def test_user_context_404_without_ratings() -> None:
         assert client.get("/v1/users/999").status_code == 404
 
 
+def test_serves_ui_dist_with_spa_fallback(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    (tmp_path / "index.html").write_text("<title>Constellate</title>")
+    monkeypatch.setattr(app_module, "UI_DIST_DIR", tmp_path)
+    with _client() as client:
+        assert "Constellate" in client.get("/").text
+        # client-side route, no matching file on disk — falls back to index.html
+        assert "Constellate" in client.get("/playground").text
+        assert client.get("/v1/health").json()["platform"] == "lyra"  # /v1/* never shadowed
+
+
+def test_no_ui_dist_means_no_mount(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(app_module, "UI_DIST_DIR", tmp_path / "does-not-exist")
+    with _client() as client:
+        assert client.get("/").status_code == 404
+        assert client.get("/v1/health").status_code == 200
+
+
 def test_bench_results(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     artifact = {"platform": "lyra", "config_fingerprint": "abc123", "utc": "2026-08-04T08:29:17Z"}
     (tmp_path / "lyra-f7eb799-20260804T082917Z.json").write_text(json.dumps(artifact))

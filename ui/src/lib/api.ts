@@ -5,9 +5,10 @@
  *    (path-derived: /v1/bench-results -> /snapshot/bench-results.json), and
  *    retrieval POSTs throw SnapshotModeError for the UI to render.
  */
-import { useQuery } from '@tanstack/react-query'
+import { useQueries, useQuery } from '@tanstack/react-query'
 
 import type {
+  BenchArtifact,
   BenchResultEntry,
   Health,
   Item,
@@ -128,6 +129,19 @@ export const useBenchResult = (name: string | undefined) =>
     queryKey: ['bench-results', name],
     queryFn: () => get<Record<string, unknown>>(`/v1/bench-results/${name!}`),
     enabled: Boolean(name),
+  })
+
+/** Bench dashboard's per-platform artifact fetch — one query per name, same
+ *  queryKey shape as useBenchResult so the cache is shared. useQueries (not a
+ *  loop of useBenchResult) because the platform list has a fixed length every
+ *  render, same pattern as Playground's per-platform recommend() calls. */
+export const useBenchArtifacts = (names: (string | undefined)[]) =>
+  useQueries({
+    queries: names.map((name) => ({
+      queryKey: ['bench-results', name],
+      queryFn: () => get<BenchArtifact>(`/v1/bench-results/${name!}`),
+      enabled: Boolean(name),
+    })),
   })
 
 export const useSearchItems = (q: string, platform?: string) =>

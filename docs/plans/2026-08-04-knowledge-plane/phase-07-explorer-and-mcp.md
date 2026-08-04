@@ -31,9 +31,9 @@ EKS-ready artifact, EKS itself deferred.
 - [x] App shell: navigation, theme toggle, layout grid, state (TanStack Query), API client with base-URL/snapshot-mode config
 - [x] Explanation graph view: Cytoscape.js wrapper component, typed nodes (user/movie/tag/genre), hierarchical layout, animated path highlight, expand-on-click via `/v1/explain`
 - [x] Playground: query builder (searchable pickers backed by `/v1/*`), platform/ablation toggles, side-by-side comparison panes, per-step timing readout
-- [ ] Benchmark dashboards: Observable Plot components fed from `/v1/bench-results` (serves committed `bench/results/*.json`); latency percentiles, quality bars with significance, ablation delta view
-- [ ] Polish pass: motion choreography, states, keyboard nav, responsive check
-- [ ] FastAPI serves `ui/dist/` locally; snapshot-mode build verified (no API)
+- [x] Benchmark dashboards: Observable Plot components fed from `/v1/bench-results` (serves committed `bench/results/*.json`); latency percentiles, quality bars with significance, ablation delta view
+- [x] Polish pass: motion choreography, states, keyboard nav, responsive check
+- [x] FastAPI serves `ui/dist/` locally; snapshot-mode build verified (no API)
 - [ ] `src/constellate/mcp_server.py`: 3 tools, agent-oriented docstrings; `.mcp.json`; driven from Claude Code against Lyra + Hydra
 
 ## Verification
@@ -177,3 +177,74 @@ content in `docs/research/2026-08-04-knowledge-plane-foundations/assets/`.
   graph. Also found breadthfirst's `fit: true` unreliable when combined with
   `animate: true` (renders pinned in a corner) — added an explicit
   `cy.fit()` in `layoutstop` as a backstop.
+- 2026-08-05 — PR D landed: bench dashboards, snapshot mode end-to-end,
+  FastAPI serving `ui/dist/`, polish pass. Read the committed hydra artifact
+  end to end first (`bench/results/*.json`) rather than inventing a schema —
+  confirmed `quality.arms.{vector_only,graph_only,hybrid}.overall` carries no
+  per-arm confidence interval (win/tie/loss and p-values instead), and that
+  all four artifacts' `graph_only.overall` are byte-identical, so the
+  overview's "graph arm identical across platforms" claim is computed live
+  from whatever's loaded, never hardcoded. `/bench`
+  (`ui/src/routes/Bench.tsx` + `ui/src/components/bench/*`): per-platform
+  artifact picker (latest-by-`utc` preselected, never re-snaps once a visitor
+  picks an older one), Quality (dot/line per arm × platform, faceted R@10 /
+  nDCG@10, printed p-values beside the hybrid-vs-vector line, never
+  asterisks), Latency (p50 line + p95–p99 band per platform across the
+  harness's concurrency steps — log-scale y because the harness's last step
+  per concurrency is a capacity probe at a higher offered rate and Lyra's
+  saturates into the tens of seconds; kept the point in, scaled around it
+  rather than dropping real data), Ablation (hybrid-vs-vector R@10 delta, one
+  row per platform, p-value alongside), Footprint (a table — allowed for
+  short enumerable facts — quoting `docs/runbooks/run-hydra.md`'s
+  containers/RSS/disk figures with a measured-date + source caption, since
+  none of that lives in a bench artifact). One shared `PlotFigure` wrapper
+  (`ui/src/components/bench/PlotFigure.tsx`) handles the Observable Plot
+  redraw-on-resize and redraw-on-theme-change plumbing once; `ui/src/lib/theme.ts`
+  adds `useThemeVersion()` (MutationObserver on `html[data-theme]`) so any
+  chart reading CSS custom properties via `getComputedStyle` at draw time
+  knows to redraw, same reasoning as Constellation.tsx's cytoscape colors.
+  Snapshot mode: `scripts/build_ui_snapshot.py` (stdlib only — the platform
+  list is just `config/*.yaml` stems, no need to parse the YAML) writes
+  `ui/public/snapshot/{platforms,bench-results}.json` +
+  `bench-results/<name>.json` + `tags.json`; `api.ts`'s existing
+  `/v1/x/y` → `snapshot/x/y.json` mapping already handled the nested
+  bench-results path correctly, so no client change was needed there — just
+  had to verify it, not fix it. `make ui-snapshot` runs it. Verified the
+  whole chain: script → `VITE_UI_MODE=snapshot pnpm build` → `python3 -m
+  http.server` on `dist/` → curled `index.html` and every snapshot JSON file.
+  FastAPI now serves `ui/dist/` (`UI_DIST_DIR`, a module attribute in the
+  `RESULTS_DIR`/`TAGS_PATH` mold so tests can monkeypatch it before
+  `create_app()`): a `SPAStaticFiles` subclass mounted at `/` *after* every
+  `/v1/*` route, falling back unmatched paths to `index.html` for
+  client-side routing. First cut of that fallback was too broad — it
+  swallowed a pre-existing traversal-guard test
+  (`/v1/bench-results/%2e%2e%2fsecret`, which percent-decodes to a path
+  outside `/v1/bench-results/{name}` and needs a real 404) into a 200
+  `index.html`, because the decoded path didn't match any route either.
+  Fixed by gating the fallback on `scope["path"]` not starting with `/v1`, so
+  a malformed API path still 404s and only genuine SPA routes get the shell.
+  Polish pass, found by re-reading the existing surfaces rather than assuming
+  PR B/C covered it: `Playground.tsx`'s `SeedPicker` combobox had no
+  keyboard path at all (mouse-only) — added arrow-key highlight, Enter to
+  pick, Escape to dismiss, plus `role="combobox"`/`listbox`/`option` and
+  `aria-activedescendant`. Three `focus:outline-none` inputs (two in
+  Playground, one in the new artifact picker) were silently eating the
+  design system's `:focus-visible` ring for keyboard users — Tailwind's
+  utilities layer beats the base-layer rule regardless of source order, so
+  `focus:outline-none` always won; swapped for an explicit
+  `focus-visible:outline-accent` so the token-defined ring survives. Tailwind's
+  `animate-pulse` (every loading skeleton, old and new) ships a hardcoded 2s
+  infinite loop that `prefers-reduced-motion` doesn't touch by itself — added
+  an unlayered override in `index.css` (has to be unlayered to beat Tailwind's
+  own utilities layer) rather than hand-rolling every skeleton's animation.
+  Found `Shell.tsx`'s `<motion.main>` had no `min-w-0` on a flex child — wide
+  content (Playground's multi-pane grid, Bench's table) could have forced
+  the whole flex row wider than the viewport, i.e. body-level horizontal
+  scroll, exactly what the responsive rule forbids; each page's own
+  `overflow-x-auto` container was already correct, the shell around it
+  wasn't. `index.html`'s `<title>` had an em-dash ("Constellate — explorer"),
+  a taste-rule violation nobody had caught — now bare `Constellate` plus a
+  `useDocumentTitle()` effect per route. `make check` and the full `ui`
+  pipeline (lint/typecheck/test/build, both snapshot and live) are green;
+  verified `/`, `/playground`, `/bench` and `/v1/health` together against a
+  live `uvicorn` process serving a real `pnpm build` output.

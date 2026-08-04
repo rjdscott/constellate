@@ -6,6 +6,7 @@ import Starfield from '../components/Starfield.tsx'
 import { recommend, usePlatforms } from '../lib/api.ts'
 import { tidyTitle } from '../lib/format.ts'
 import type { RetrievalResponse } from '../lib/types.ts'
+import { useDocumentTitle } from '../lib/useDocumentTitle.ts'
 
 /* Chart coordinates live in a 1000×640 viewBox drawn edge-to-edge behind the
    content — a star atlas plate, not a diagram in a card. The asterism is
@@ -165,6 +166,7 @@ function Status({ alive, fingerprint }: { alive: boolean | undefined; fingerprin
 }
 
 export default function Overview() {
+  useDocumentTitle('Overview')
   const navigate = useNavigate()
   const platforms = usePlatforms()
   const asterism = PLATFORMS.map((p) => `${p.x} ${p.y}`).join(' L')
