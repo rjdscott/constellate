@@ -17,10 +17,12 @@ engines:
     adapter: pgvector      # HNSW on halfvec, iterative scans (ADR 0004)
   graph:
     adapter: cte           # cte (default, the thesis) | age (second adapter)
-  bench:
-    # quality-equivalence gate vs Lyra (phase-05 verification): hybrid-arm
-    # metric deltas beyond this are a conformance failure, not a finding.
-    # Bench-harness parameter, not platform identity — lives here so it is
-    # stated in config, read by report.py from raw yaml (kept out of the
-    # PlatformConfig model so lyra's fingerprint stays comparable).
-    quality_tolerance: 0.02
+
+bench:
+  # quality-equivalence gate vs Lyra (phase-05 verification): hybrid-arm metric
+  # deltas beyond this are a conformance failure, not a finding.
+  # Bench-harness parameter, not platform identity — hence top-level and not
+  # under engines: PlatformConfig ignores unknown top-level keys, so it stays
+  # out of the fingerprint (under engines it was *in* it, contradicting this
+  # very comment). Read by report.py straight from the raw yaml.
+  quality_tolerance: 0.02

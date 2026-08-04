@@ -20,6 +20,8 @@ engines:
   graph:
     adapter: memgraph
     uri: bolt://localhost:17687
-  # report-layer knob, not part of the platform fingerprint (see orion.yaml)
-  bench:
-    quality_tolerance: 0.02
+
+# report-layer knob, top-level so it stays out of the platform fingerprint
+# (PlatformConfig ignores unknown top-level keys) — see orion.yaml
+bench:
+  quality_tolerance: 0.02

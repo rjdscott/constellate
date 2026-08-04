@@ -83,7 +83,7 @@ def _service(year: int = 2005) -> Service:
     cfg = PlatformConfig(platform="lyra")
     relational = FakeRelational(year=year)
     vector, graph = FakeVector(), FakeGraph()
-    return Service(Pipeline(relational, vector, graph, cfg), relational, graph, cfg)
+    return Service(Pipeline(relational, vector, graph, cfg), relational, vector, graph, cfg)
 
 
 def test_all_flows_pass_on_wellbehaved_service() -> None:

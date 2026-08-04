@@ -7,7 +7,7 @@ import json
 
 from constellate.config import PlatformConfig
 from constellate.core.pipeline import Pipeline
-from constellate.core.protocol import GraphPlane, RelationalPlane
+from constellate.core.protocol import GraphPlane, RelationalPlane, VectorPlane
 from constellate.core.types import ItemId, RetrievalRequest, RetrievalResponse
 from constellate.ingest import CANONICAL_DIR
 
@@ -17,16 +17,20 @@ class Service:
         self,
         pipeline: Pipeline,
         relational: RelationalPlane,
+        vector: VectorPlane,
         graph: GraphPlane,
         config: PlatformConfig,
     ) -> None:
         self._pipeline = pipeline
         self._relational = relational
+        self._vector = vector
         self._graph = graph
         self._config = config
 
     def close(self) -> None:
-        for plane in (self._relational, self._graph):
+        # the vector plane holds a connection too (qdrant); the in-process
+        # planes have no close() and the callable guard skips them
+        for plane in (self._relational, self._vector, self._graph):
             close = getattr(plane, "close", None)
             if callable(close):
                 close()

@@ -25,6 +25,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+from qdrant_client import AsyncQdrantClient
 
 from constellate.bench.flows import run_flows
 from constellate.bench.latency import run_open_loop
@@ -37,7 +38,7 @@ from constellate.bench.metrics import (
     novelty,
     significance,
 )
-from constellate.config import load_config
+from constellate.config import PlatformConfig, load_config
 from constellate.core.fusion import rrf
 from constellate.core.types import Candidate, PlaneName, RetrievalRequest
 from constellate.factory import build_service
@@ -54,6 +55,7 @@ ARMS: dict[str, list[PlaneName]] = {
 FETCH_K = 50  # retrieval depth: Recall@50 ceiling, everything else cut at 10
 WEIGHT_GRID = (0.25, 0.5, 0.75, 1.0, 1.5, 2.0)
 FLOWS_USER_ID = 1
+ENDPOINT_KEYS = {"dsn", "url", "uri"}  # credential-bearing, stripped from artifacts
 CONCURRENCIES = (1, 8, 32)
 UTILISATION = 0.7  # fixed-rate runs sit below the knee; one extra run sits past it
 
@@ -236,6 +238,36 @@ async def latency_section(
     }
 
 
+async def _engine_state(platform: str, cfg: PlatformConfig) -> dict[str, Any]:
+    """Engine facts the config cannot state — how much of each qdrant
+    collection is really HNSW-indexed. The tail under the adapter's indexing
+    threshold never is, so `indexed < points` is the healthy steady state and
+    a run whose numbers look odd can be checked against what was serving it.
+    Best-effort by design: an unreachable engine annotates the artifact, it
+    does not sink a finished bench.
+    """
+    if platform != "hydra":
+        return {}
+    url = os.environ.get("HYDRA_QDRANT_URL") or str(
+        cfg.engines.get("vector", {}).get("url", "http://localhost:16333")
+    )
+    try:
+        client = AsyncQdrantClient(url=url, timeout=10)
+        try:
+            collections = {}
+            for name in ("items", "users"):
+                info = await client.get_collection(name)
+                collections[name] = {
+                    "indexed": info.indexed_vectors_count or 0,
+                    "points": info.points_count or 0,
+                }
+        finally:
+            await client.close()
+    except Exception as exc:
+        return {"qdrant": {"error": f"{type(exc).__name__}: {exc}"}}
+    return {"qdrant": collections}
+
+
 def _git_sha() -> str:
     try:
         out = subprocess.run(
@@ -297,15 +329,17 @@ async def run_bench(platform: str, *, samples: int, warmup: int, skip_latency: b
         if not skip_latency:
             print(f"latency: open-loop, {samples} samples/run, concurrency {CONCURRENCIES} ...")
             latency = await latency_section(service, probes, samples=samples, warmup=warmup)
+        engine_state = await _engine_state(platform, cfg)
     finally:
         service.close()
 
     artifact: dict[str, Any] = {
         "platform": platform,
-        # which adapters this run measured (e.g. cte vs age); DSNs stripped —
-        # committed artifacts must not carry credentials, even local ones
+        # which adapters this run measured (e.g. cte vs age); every endpoint key
+        # stripped — dsn/url/uri can all embed credentials, and committed
+        # artifacts must carry none, even local ones
         "engines": {
-            name: {k: v for k, v in engine.items() if k != "dsn"}
+            name: {k: v for k, v in engine.items() if k not in ENDPOINT_KEYS}
             for name, engine in cfg.engines.items()
         },
         "git_sha": _git_sha(),
@@ -319,8 +353,19 @@ async def run_bench(platform: str, *, samples: int, warmup: int, skip_latency: b
         },
         "versions": {
             name: version(name)
-            for name in ("numpy", "duckdb", "kuzu", "faiss-cpu", "ir-measures", "ranx")
+            for name in (
+                "numpy",
+                "duckdb",
+                "kuzu",
+                "faiss-cpu",
+                "ir-measures",
+                "ranx",
+                "asyncpg",
+                "qdrant-client",
+                "neo4j",
+            )
         },
+        "engine_state": engine_state,
         "flows": [f.to_json() for f in flow_results],
         "quality": quality,
         "fusion_tuning": fusion,

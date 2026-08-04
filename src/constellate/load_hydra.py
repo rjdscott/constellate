@@ -17,6 +17,7 @@ data/hydra/import to /import, so the loader COPYs the CSVs out of Postgres
 onto the host and Memgraph reads them back through the mount.
 """
 
+import asyncio
 import os
 import sys
 import time
@@ -28,7 +29,7 @@ import pandas as pd
 import pyarrow.parquet as pq
 from neo4j import AsyncGraphDatabase, AsyncSession
 from qdrant_client import AsyncQdrantClient
-from qdrant_client.models import PointStruct
+from qdrant_client.models import CollectionStatus, PointStruct
 
 from constellate.ingest import CANONICAL_DIR, DATA_DIR
 from constellate.load import doubled_edges
@@ -52,6 +53,7 @@ VECTOR_CHUNK = 8_192
 QDRANT_BATCH = 4_096
 DELETE_BATCH = 200_000
 PERIODIC_COMMIT = 50_000
+INDEX_TIMEOUT = 120.0  # seconds to wait for qdrant's optimizer to settle
 
 DISTINCT_KEYS = "SELECT src AS key FROM graph_edges UNION SELECT dst FROM graph_edges"
 
@@ -169,6 +171,29 @@ async def _load_edges(conn: asyncpg.Connection, canonical: Path) -> int:
 # --- derived projections (never manifest-gated) ------------------------------
 
 
+async def _await_indexed(client: AsyncQdrantClient, collection: str) -> None:
+    """Barrier: block until the optimizer stops moving and the collection is green.
+
+    Not equality with the point count — the adapter's 1000-point indexing
+    threshold leaves each segment's tail unindexed on purpose, so the steady
+    state is `indexed < total` forever. Poll for *stability* instead: two
+    consecutive reads with the same `indexed_vectors_count` and a green status
+    mean the build is done, and a bench started right after measures HNSW
+    rather than a half-built index.
+    """
+    deadline = time.perf_counter() + INDEX_TIMEOUT
+    previous = -1
+    while time.perf_counter() < deadline:
+        info = await client.get_collection(collection)
+        indexed = info.indexed_vectors_count or 0
+        if indexed == previous and info.status == CollectionStatus.GREEN:
+            print(f"rebuild: qdrant {collection} indexed {indexed:,}/{info.points_count or 0:,}")
+            return
+        previous = indexed
+        await asyncio.sleep(1)
+    sys.exit(f"rebuild: qdrant {collection} still indexing after {INDEX_TIMEOUT:.0f}s")
+
+
 async def _project_qdrant(conn: asyncpg.Connection, dim: int) -> dict[str, int]:
     client = AsyncQdrantClient(url=QDRANT_URL, timeout=120)
     counts: dict[str, int] = {}
@@ -197,9 +222,12 @@ async def _project_qdrant(conn: asyncpg.Connection, dim: int) -> dict[str, int]:
             if batch:
                 await client.upsert(collection, points=batch)
                 total += len(batch)
-            counts[collection] = total
             dt = time.perf_counter() - t0
-            print(f"rebuild: qdrant {collection} — {total:,} points in {dt:.1f}s")
+            print(f"rebuild: qdrant {collection} — {total:,} points sent in {dt:.1f}s")
+            await _await_indexed(client, collection)
+            # counted from qdrant, never from the streamed total: comparing
+            # postgres against a number postgres produced can only ever agree
+            counts[collection] = (await client.count(collection, exact=True)).count
     finally:
         await client.close()
     return counts

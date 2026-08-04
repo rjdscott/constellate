@@ -144,7 +144,10 @@ class MemgraphGraph:
     ) -> list[Candidate]:
         if not seeds:
             return []
-        seed_nodes = sorted(f"{self._prefix}{s}" for s in seeds)
+        # a *set*: `UNWIND $seeds` walks once per occurrence, so a duplicated
+        # seed would double that seed's support — cte.py's `= ANY` is plain
+        # membership and never does. Dedupe here keeps the two identical.
+        seed_nodes = sorted({f"{self._prefix}{s}" for s in seeds})
         types = list(edge_types) if edge_types else None
 
         # Stage 1 — structural ranking, one query shaped like cte.py's UNION-then-

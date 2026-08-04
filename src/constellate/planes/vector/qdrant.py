@@ -10,10 +10,12 @@ conformance fixture):
   users(vector size=dim, distance=Dot)
 """
 
+import asyncio
 from collections.abc import Iterable
 
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import (
+    CollectionInfo,
     Distance,
     Filter,
     HasIdCondition,
@@ -24,13 +26,16 @@ from qdrant_client.models import (
     VectorParams,
 )
 
+from constellate.core.errors import ConfigError
 from constellate.core.types import Candidate, ItemId, UserId, Vector
 
 # HNSW parity with the Lyra hnswlib arm and pgvector (M=16, ef_construction=200,
-# ef_search=200). Qdrant's default indexing_threshold (20k per segment) never
-# triggers on ~60k points spread over 8 segments — the collection silently runs
-# brute-force. Lowering it forces a real HNSW build so the bench measures the
-# ANN engine, not accidental exact search.
+# ef_search=200). indexing_threshold is measured in KILOBYTES per segment (at
+# 256-dim fp32, 1KB/vector, so the numbers read like point counts by
+# coincidence): the 20000KB default never triggers on ~60k points spread over
+# 8 segments — the collection silently runs brute-force. Lowering it forces a
+# real HNSW build so the bench measures the ANN engine, not accidental exact
+# search.
 M = 16
 EF_CONSTRUCTION = 200
 EF_SEARCH = 200
@@ -53,13 +58,56 @@ class QdrantVector:
 
     async def ensure_collections(self) -> None:
         for name in (self._items, self._users):
-            if not await self._client.collection_exists(name):
-                await self._client.create_collection(
-                    name,
-                    vectors_config=VectorParams(size=self._dim, distance=Distance.DOT),
-                    hnsw_config=HnswConfigDiff(m=M, ef_construct=EF_CONSTRUCTION),
-                    optimizers_config=OptimizersConfigDiff(indexing_threshold=INDEXING_THRESHOLD),
-                )
+            if await self._client.collection_exists(name):
+                self._check_config(name, await self._client.get_collection(name))
+                continue
+            await self._client.create_collection(
+                name,
+                vectors_config=VectorParams(size=self._dim, distance=Distance.DOT),
+                hnsw_config=HnswConfigDiff(m=M, ef_construct=EF_CONSTRUCTION),
+                optimizers_config=OptimizersConfigDiff(indexing_threshold=INDEXING_THRESHOLD),
+            )
+
+    def _check_config(self, name: str, info: CollectionInfo) -> None:
+        """A pre-existing collection must be the one we would have created.
+
+        Silently reusing a leftover collection is the expensive kind of wrong:
+        the wrong distance ranks nothing like dot product, and the default
+        indexing threshold leaves the collection brute-forcing while the bench
+        reports it as ANN. Cheaper to refuse than to explain the numbers later.
+        """
+        vectors = info.config.params.vectors
+        expected = {
+            "size": self._dim,
+            "distance": Distance.DOT,
+            "hnsw m": M,
+            "hnsw ef_construct": EF_CONSTRUCTION,
+            "indexing_threshold": INDEXING_THRESHOLD,
+        }
+        actual = {
+            "size": getattr(vectors, "size", None),
+            "distance": getattr(vectors, "distance", None),
+            "hnsw m": getattr(info.config.hnsw_config, "m", None),
+            "hnsw ef_construct": getattr(info.config.hnsw_config, "ef_construct", None),
+            "indexing_threshold": getattr(info.config.optimizer_config, "indexing_threshold", None),
+        }
+        bad = [
+            f"{k} expected {expected[k]!r}, got {actual[k]!r}"
+            for k in expected
+            if actual[k] != expected[k]
+        ]
+        if bad:
+            raise ConfigError(f"qdrant collection {name!r} config mismatch — " + "; ".join(bad))
+
+    def close(self) -> None:
+        # same schedule-or-run dance as the memgraph adapter: Service.close() is
+        # sync, AsyncQdrantClient.close() is a coroutine (task kept off the GC).
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            asyncio.run(self._client.close())
+        else:
+            self._closing = loop.create_task(self._client.close())
 
     async def search(self, vec: Vector, k: int, exclude: set[ItemId]) -> list[Candidate]:
         query_filter = (

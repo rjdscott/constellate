@@ -219,8 +219,19 @@ if HAS_ORION:
 async def _qdrant() -> VectorPlane:
     """Per-test collections; teardown deletes them and closes the client."""
     suffix = uuid.uuid4().hex[:8]
+    # gRPC, like the factory serves it — a REST-only conformance run tests a
+    # transport nothing in production uses
+    client = AsyncQdrantClient(
+        url=HYDRA_QDRANT_URL,
+        prefer_grpc=True,
+        grpc_port=int(os.environ.get("HYDRA_QDRANT_GRPC", "16334")),
+    )
+    # sweep collections a previous crashed run left behind, then make ours
+    for existing in (await client.get_collections()).collections:
+        if existing.name.startswith(("conf_items_", "conf_users_")):
+            await client.delete_collection(existing.name)
     plane = QdrantVector(
-        AsyncQdrantClient(url=HYDRA_QDRANT_URL),
+        client,
         items_collection=f"conf_items_{suffix}",
         users_collection=f"conf_users_{suffix}",
         dim=DIM,
@@ -236,6 +247,14 @@ async def _memgraph() -> GraphPlane:
         label=f"Conf_{uuid.uuid4().hex[:8]}",
         item_prefix="m:",
     )
+    # sweep labels a previous crashed run left behind (the serving :Node label
+    # never matches), then create ours — SHOW INDEX INFO is the only place a
+    # label with no live nodes is still discoverable
+    for row in await plane._run("SHOW INDEX INFO"):
+        label = str(row["label"])
+        if label.startswith("Conf_"):
+            await plane._run(f"MATCH (n:{label}) DETACH DELETE n")
+            await plane._run(f"DROP INDEX ON :{label}(key)")
     await plane.ensure_schema()
     return plane
 
@@ -256,9 +275,11 @@ async def _teardown(plane: object) -> None:
     if isinstance(pool, asyncpg.Pool):
         pool.terminate()
     if isinstance(plane, QdrantVector):
-        for name in (plane._items, plane._users):
-            await plane._client.delete_collection(name)
-        await plane._client.close()
+        try:  # a failed delete must not leak the client too — the sweep in
+            for name in (plane._items, plane._users):  # _qdrant catches the rest
+                await plane._client.delete_collection(name)
+        finally:
+            await plane._client.close()
     if isinstance(plane, MemgraphGraph):
         # drop this test's nodes and its index; the label is unique per test
         await plane._run(f"MATCH (n:{plane._label}) DETACH DELETE n")

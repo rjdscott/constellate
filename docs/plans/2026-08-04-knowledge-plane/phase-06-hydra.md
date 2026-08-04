@@ -13,9 +13,12 @@ shows latency + footprint deltas (this platform's numbers are the quotable ones)
 ## Tasks
 
 - [x] `compose/hydra.yml`: postgres:18, qdrant, memgraph (pinned tags, healthchecks, memory limits)
-- [ ] `planes/vector/qdrant.py` (async client, exclusion via filter)
-- [ ] `planes/graph/memgraph.py` — neo4j async driver, `[*wShortest]` for weighted paths
-- [ ] `make load PLATFORM=hydra`; `make rebuild PLATFORM=hydra` (relational → projections)
+- [x] `planes/vector/qdrant.py` (async client, exclusion via filter)
+- [x] `planes/graph/memgraph.py` — neo4j async driver. *Scope note:* planned
+  `[*wShortest]` abandoned — variable-length patterns are the engine's slow
+  path here (progress log 2026-08-04, lesson L11); implemented as
+  UNWIND-anchored unrolled chains matching the CTE ranking contract instead.
+- [x] `make load PLATFORM=hydra`; `make rebuild PLATFORM=hydra` (relational → projections)
 - [ ] Bench at concurrency 1/8/32; ops metrics (ingest/rebuild wall time, container count, peak RSS, on-disk size)
 - [ ] Cross-platform report: Lyra vs Orion vs Hydra quality equivalence + latency/footprint table
 
@@ -54,3 +57,15 @@ make bench PLATFORM=hydra && make report
   memgraph's variable-length + `IN`-seed query hung >312s on production
   data (planner ignores :Node(key) index for IN; DFS path explosion
   through hubs) — rewritten as UNWIND-anchored flat chains per hop.
+- 2026-08-04 — Independent adversarial review (fresh context, live-engine
+  probes): 2 major, 8 minor, 6 nits. Majors: qdrant projection count
+  "verification" compared postgres to itself (tautology — could never
+  fail) and no index-state barrier/record (bench could measure an
+  unindexed collection; artifact still listed kuzu/faiss versions for a
+  hydra run). Ranking contract independently confirmed sound (68/68
+  adversarial differential cases vs CteGraph). All majors + minors
+  queued as fixes; first bench run discarded, clean re-run after fixes
+  (L7's "review before the bench" — cost accepted, again). Note: m8 fix
+  moves `bench.quality_tolerance` out of `engines`, so orion/hydra
+  config fingerprints change vs the committed phase-05 artifacts —
+  intended; old artifacts remain valid snapshots of their configs.

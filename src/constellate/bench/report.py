@@ -21,14 +21,14 @@ EQUIVALENCE_METRICS = ("R@10", "nDCG@10")
 
 
 def _quality_tolerance(platform: str) -> float | None:
-    """Equivalence tolerance vs Lyra — stated in config/<platform>.yaml under
-    engines.bench (raw yaml read: a bench parameter, deliberately outside the
+    """Equivalence tolerance vs Lyra — stated top-level in config/<platform>.yaml
+    under bench (raw yaml read: a bench parameter, deliberately outside the
     PlatformConfig model so platform fingerprints stay comparable)."""
     path = CONFIG_DIR / f"{platform}.yaml"
     if not path.is_file():
         return None
     raw = yaml.safe_load(path.read_text())
-    value = raw.get("engines", {}).get("bench", {}).get("quality_tolerance")
+    value = raw.get("bench", {}).get("quality_tolerance")
     return float(value) if value is not None else None
 
 

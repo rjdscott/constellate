@@ -64,7 +64,7 @@ def _build_lyra(cfg: PlatformConfig) -> Service:
     vector = _lyra_vector(lyra_dir, adapter, cfg.data.embedding_dim, cfg.data.random_seed)
     graph = KuzuGraph(kuzu.Database(str(lyra_dir / "kuzu"), read_only=True), init_schema=False)
     pipeline = Pipeline(relational, vector, graph, cfg)
-    return Service(pipeline, relational, graph, cfg)
+    return Service(pipeline, relational, vector, graph, cfg)
 
 
 async def _build_orion(cfg: PlatformConfig) -> Service:
@@ -91,7 +91,7 @@ async def _build_orion(cfg: PlatformConfig) -> Service:
         pool.terminate()
         raise ConfigError(f"unknown graph adapter {adapter!r} (cte|age)")
     pipeline = Pipeline(relational, vector, graph, cfg)
-    return Service(pipeline, relational, graph, cfg)
+    return Service(pipeline, relational, vector, graph, cfg)
 
 
 async def _build_hydra(cfg: PlatformConfig) -> Service:
@@ -106,20 +106,34 @@ async def _build_hydra(cfg: PlatformConfig) -> Service:
         raise ConfigError(
             f"cannot reach hydra postgres at {dsn} — run `make up PLATFORM=hydra`, then load"
         ) from exc
-    relational = PostgresRelational(pool)
-    vec_cfg = cfg.engines.get("vector", {})
-    client = AsyncQdrantClient(
-        url=os.environ.get("HYDRA_QDRANT_URL") or str(vec_cfg.get("url", "http://localhost:16333")),
-        prefer_grpc=True,
-        grpc_port=int(str(vec_cfg.get("grpc_port", 16334))),
-    )
-    vector = QdrantVector(client, dim=cfg.data.embedding_dim)
-    uri = os.environ.get("HYDRA_MEMGRAPH_URI") or str(
-        cfg.engines.get("graph", {}).get("uri", "bolt://localhost:17687")
-    )
-    graph = MemgraphGraph(AsyncGraphDatabase.driver(uri, auth=None))
-    pipeline = Pipeline(relational, vector, graph, cfg)
-    return Service(pipeline, relational, graph, cfg)
+    # everything past pool creation can raise (bad adapter name, bad url), and
+    # an un-terminated pool keeps its connections open for the process's life
+    try:
+        relational = PostgresRelational(pool)
+        vec_cfg = cfg.engines.get("vector", {})
+        vec_adapter = str(vec_cfg.get("adapter", "qdrant"))
+        if vec_adapter != "qdrant":
+            raise ConfigError(f"unknown vector adapter {vec_adapter!r} (qdrant)")
+        client = AsyncQdrantClient(
+            url=os.environ.get("HYDRA_QDRANT_URL")
+            or str(vec_cfg.get("url", "http://localhost:16333")),
+            prefer_grpc=True,
+            grpc_port=int(str(vec_cfg.get("grpc_port", 16334))),
+        )
+        vector = QdrantVector(client, dim=cfg.data.embedding_dim)
+        graph_cfg = cfg.engines.get("graph", {})
+        graph_adapter = str(graph_cfg.get("adapter", "memgraph"))
+        if graph_adapter != "memgraph":
+            raise ConfigError(f"unknown graph adapter {graph_adapter!r} (memgraph)")
+        uri = os.environ.get("HYDRA_MEMGRAPH_URI") or str(
+            graph_cfg.get("uri", "bolt://localhost:17687")
+        )
+        graph = MemgraphGraph(AsyncGraphDatabase.driver(uri, auth=None))
+        pipeline = Pipeline(relational, vector, graph, cfg)
+        return Service(pipeline, relational, vector, graph, cfg)
+    except Exception:
+        pool.terminate()
+        raise
 
 
 async def build_service(platform: str = "lyra") -> Service:

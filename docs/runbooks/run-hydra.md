@@ -36,7 +36,12 @@ health after a load.
 
 3. Rebuild the projections on their own — drops and regenerates Qdrant +
    Memgraph from Postgres alone, nothing else touched. This is the CDC-shape
-   proof (ADR 0005) and is safe to run anytime, loaded or not:
+   proof (ADR 0005). Idempotent and safe to re-run whenever nothing is
+   *serving* — it is **not** atomic: collections and the graph are deleted
+   before they are repopulated, so queries during the ~40 s window (or after
+   a crash mid-rebuild) hit a missing collection / empty graph until the
+   next successful rebuild. Stop the API first. (Revisit with staged
+   Qdrant aliases + label swap if Hydra ever serves during rebuilds.)
 
    ```sh
    make rebuild PLATFORM=hydra
