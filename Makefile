@@ -29,6 +29,7 @@ up:
 ifeq ($(PLATFORM),lyra)
 	@echo "Lyra is in-process; nothing to start"
 else
+	@mkdir -p data/$(PLATFORM)/age-import  # bind-mount dirs must pre-exist user-owned
 	docker compose -f compose/$(PLATFORM).yml up -d --wait
 endif
 

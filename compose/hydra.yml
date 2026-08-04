@@ -1,3 +1,9 @@
 # Hydra, the composed knowledge plane — Postgres 18 + Qdrant + Memgraph.
 # Populated in phase 06 (docs/plans/2026-08-04-knowledge-plane/phase-06-hydra.md).
+#
+# Conventions (see orion.yml): explicit project name per platform; host
+# ports = engine default + 10000 so all platforms run simultaneously —
+# postgres 15433 (15432 is Orion's), qdrant 16333/16334, memgraph 17687.
+name: constellate-hydra
+
 services: {}

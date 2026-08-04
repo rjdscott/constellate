@@ -249,7 +249,7 @@ def _git_sha() -> str:
 async def run_bench(platform: str, *, samples: int, warmup: int, skip_latency: bool) -> Path:
     cfg = load_config(platform)
     probes = pd.read_parquet(CANONICAL_DIR / "probes.parquet")
-    service = build_service(platform)
+    service = await build_service(platform)
     try:
         print(f"flows: F1-F6 against {platform} ...")
         flow_results = await run_flows(service, probes, user_id=FLOWS_USER_ID)
