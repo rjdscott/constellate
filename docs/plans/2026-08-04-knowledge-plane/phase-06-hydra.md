@@ -43,3 +43,14 @@ make bench PLATFORM=hydra && make report
   neo4j 6.2.0. `make rebuild` target added (projections from relational —
   the CDC proof). Note: ADR 0005 pinned Memgraph 3.12 = image 3.12.0;
   qdrant healthcheck uses bash /dev/tcp (image ships no curl).
+- 2026-08-04 — Adapters + loader landed (parallel subagent build; Fable
+  design/verify). Conformance 40 green incl. qdrant/memgraph params.
+  Memgraph ranking contract pre-proven: 432-case differential vs CteGraph,
+  identical at hops 1–2. Full load 98.9s; rebuild-from-postgres 41s,
+  counts verified across engines; idempotence proven. Two incidents,
+  both now lessons (L10, L11 in research 09): qdrant silently ran
+  brute-force (default indexing_threshold never triggered at 62k points
+  / 8 segments — HNSW config moved into adapter, forced build), and
+  memgraph's variable-length + `IN`-seed query hung >312s on production
+  data (planner ignores :Node(key) index for IN; DFS path explosion
+  through hubs) — rewritten as UNWIND-anchored flat chains per hop.
