@@ -34,7 +34,7 @@
 
 ## Decisions this plan executes
 
-ADRs [0001](../../adr/0001-pin-movielens-ml-25m.md)–[0009](../../adr/0009-platform-codenames-constellations.md)
+ADRs [0001](../../adr/0001-pin-movielens-ml-25m.md)–[0010](../../adr/0010-package-named-constellate.md)
 (all **Accepted** 2026-08-04), grounded in
 `docs/research/2026-08-04-knowledge-plane-foundations/`. The prep sketch
 `docs/constellate-prep.md` is superseded where they disagree; its core
