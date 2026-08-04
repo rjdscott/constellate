@@ -32,6 +32,29 @@
 | 07 | [Explorer UI + MCP](phase-07-explorer-and-mcp.md) | 🔵 Not started | 2026-08-04 |
 | 08 | [Neural arm + final report](phase-08-neural-arm-and-report.md) | 🔵 Not started | 2026-08-04 |
 
+## Parked experiments (triggered, not scheduled)
+
+Run after phase 08 when the harness is final, unless a trigger fires earlier:
+
+- **Neo4j CE reference arm in Hydra** (agreed 2026-08-05). ADR 0005
+  pre-authorized Neo4j as "an optional reference configuration, not the
+  platform". Shape: `engines.graph.adapter: neo4j` arm exactly like Orion's
+  cte/age split — same Bolt driver the Memgraph adapter already uses, port
+  the three UNWIND-anchored queries (Neo4j's planner handles `IN` +
+  index correctly, so the L11 hang class shouldn't recur), compose service,
+  conformance + parity test validate the contract, one bench artifact +
+  report row. Est. ~half a day. Value: the audience-calibration number —
+  the best-known engine measured against four others producing identical
+  retrieval. Expectations to test: slowest multi-hop (CE slotted runtime,
+  single-threaded per query), 2–4× memgraph's graph-leg latency, 2–4GB JVM
+  RSS on a dataset that fits in RAM everywhere.
+- **AGE 1.8.0 delta re-run** — trigger: AGE 1.8.0 final ships (ADR 0004).
+- **Expansion-policy ADR** — trigger: any change to retrieval ranking
+  (phase-04 finding: hops-ASC crowds out 2-hop path_required/tag_bridge
+  targets).
+- **Latency-harness rate sweep** — L6 do-differently; fold into any future
+  harness change.
+
 ## Decisions this plan executes
 
 ADRs [0001](../../adr/0001-pin-movielens-ml-25m.md)–[0010](../../adr/0010-package-named-constellate.md)
