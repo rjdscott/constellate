@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router'
 
 import Starfield from '../components/Starfield.tsx'
 import { recommend, usePlatforms } from '../lib/api.ts'
+import { tidyTitle } from '../lib/format.ts'
 import type { RetrievalResponse } from '../lib/types.ts'
 
 /* Chart coordinates live in a 1000×640 viewBox drawn edge-to-edge behind the
@@ -33,16 +34,6 @@ const SEEDS = [
   { id: 1213, title: 'Goodfellas' },
   { id: 5618, title: 'Spirited Away' },
 ]
-
-/* "(1999)" → dim suffix; "Matrix, The" → "The Matrix". MovieLens titles are
-   catalog-sorted; people aren't. */
-function tidyTitle(raw: string): { title: string; year: string | null } {
-  const year = /\((\d{4})\)\s*$/.exec(raw)
-  let title = year ? raw.slice(0, year.index).trim() : raw
-  const article = /^(.*), (The|A|An|Les|Le|La|L')$/.exec(title)
-  if (article) title = `${article[2]} ${article[1]}`
-  return { title, year: year ? year[1] : null }
-}
 
 /** Four-point chart star: long thin spikes, the way atlases mark magnitude. */
 const STAR = 'M0 -10 L1.7 -1.7 L10 0 L1.7 1.7 L0 10 L-1.7 1.7 L-10 0 L-1.7 -1.7 Z'

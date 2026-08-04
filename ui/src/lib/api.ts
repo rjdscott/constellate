@@ -11,9 +11,13 @@ import type {
   BenchResultEntry,
   Health,
   Item,
+  ItemId,
   PlatformStatus,
   RetrievalRequest,
   RetrievalResponse,
+  TagNames,
+  UserContext,
+  UserId,
 } from './types.ts'
 
 const BASE: string = import.meta.env.VITE_API_BASE ?? ''
@@ -71,8 +75,50 @@ export async function recommend(
   return (await response.json()) as RetrievalResponse
 }
 
+export async function similar(
+  request: { seed_item_id: ItemId; k?: number; explain?: boolean },
+  platform?: string,
+): Promise<RetrievalResponse> {
+  if (isSnapshot) throw new SnapshotModeError('Retrieval')
+  const response = await fetch(url('/v1/similar', { platform }), {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(request),
+  })
+  if (!response.ok) throw new ApiError(response.status, `POST /v1/similar → ${response.status}`)
+  return (await response.json()) as RetrievalResponse
+}
+
 export const usePlatforms = () =>
   useQuery({ queryKey: ['platforms'], queryFn: () => get<PlatformStatus[]>('/v1/platforms') })
+
+/** Hydrates ids for the constellation view's movie-node labels. */
+export const useItems = (ids: ItemId[], platform?: string) =>
+  useQuery({
+    queryKey: ['items', ids.join(','), platform],
+    queryFn: () => get<Item[]>('/v1/items', { ids: ids.join(','), platform }),
+    enabled: ids.length > 0,
+    staleTime: Infinity,
+  })
+
+/** Genome tag names for the constellation view's tag-node labels. Falls back
+ *  to "tag <id>" per-node when this 404s (raw dataset not present). */
+export const useTags = () =>
+  useQuery({
+    queryKey: ['tags'],
+    queryFn: () => get<TagNames>('/v1/tags'),
+    staleTime: Infinity,
+    retry: false,
+  })
+
+/** Numeric-input validation on blur (query builder, user mode). */
+export const useUserContext = (userId: UserId | null, platform?: string) =>
+  useQuery({
+    queryKey: ['user', userId, platform],
+    queryFn: () => get<UserContext>(`/v1/users/${userId!}`, { platform }),
+    enabled: userId !== null,
+    retry: false,
+  })
 
 export const useBenchResults = () =>
   useQuery({ queryKey: ['bench-results'], queryFn: () => get<BenchResultEntry[]>('/v1/bench-results') })

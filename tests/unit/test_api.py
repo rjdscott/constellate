@@ -185,6 +185,46 @@ def test_item_search() -> None:
         assert client.get("/v1/search/items", params={"q": ""}).status_code == 422
 
 
+def test_items_hydrate() -> None:
+    with _client() as client:
+        hits = client.get("/v1/items", params={"ids": "1,2,3"}).json()
+        assert [i["item_id"] for i in hits] == [1, 2, 3]
+        assert all(i["title"].startswith("item") for i in hits)
+        # dedup is not required — passthrough to hydrate(), which honours order
+        assert client.get("/v1/items", params={"ids": ""}).status_code == 422
+        assert client.get("/v1/items", params={"ids": "a,b"}).status_code == 422
+
+
+def test_items_hydrate_caps_at_100() -> None:
+    with _client() as client:
+        many = ",".join(str(i) for i in range(1, 151))
+        hits = client.get("/v1/items", params={"ids": many}).json()
+        assert len(hits) == 100
+        assert [i["item_id"] for i in hits] == list(range(1, 101))
+
+
+def test_tags(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    csv_path = tmp_path / "genome-tags.csv"
+    csv_path.write_text("tagId,tag\n742,zombies\n1,007\n")
+    from constellate import service as service_module
+
+    monkeypatch.setattr(service_module, "TAGS_PATH", csv_path)
+    monkeypatch.setattr(service_module, "_tags_cache", None)
+    with _client() as client:
+        assert client.get("/v1/tags").json() == {"742": "zombies", "1": "007"}
+
+
+def test_tags_404_when_csv_absent(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    from constellate import service as service_module
+
+    monkeypatch.setattr(service_module, "TAGS_PATH", tmp_path / "missing.csv")
+    monkeypatch.setattr(service_module, "_tags_cache", None)
+    with _client() as client:
+        response = client.get("/v1/tags")
+        assert response.status_code == 404
+        assert "genome tags" in response.json()["detail"]
+
+
 def test_user_context_404_without_ratings() -> None:
     with _client() as client:
         assert client.get("/v1/users/1").json()["n_ratings"] == 1

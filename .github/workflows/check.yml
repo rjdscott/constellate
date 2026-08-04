@@ -62,5 +62,5 @@ jobs:
           cache-dependency-path: ui/pnpm-lock.yaml
       - name: Install (locked)
         run: pnpm install --frozen-lockfile
-      - name: Lint + types + build
-        run: pnpm lint && pnpm typecheck && pnpm build
+      - name: Lint + types + test + build
+        run: pnpm lint && pnpm typecheck && pnpm test -- --run && pnpm build

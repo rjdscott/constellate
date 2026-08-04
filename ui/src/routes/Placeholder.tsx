@@ -7,10 +7,6 @@ function Placeholder({ title, arrival }: { title: string; arrival: string }) {
   )
 }
 
-export function Playground() {
-  return <Placeholder title="Playground" arrival="Arrives in PR C." />
-}
-
 export function Bench() {
   return <Placeholder title="Bench" arrival="Arrives in PR D." />
 }

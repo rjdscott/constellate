@@ -29,11 +29,12 @@ from constellate.core.types import (
     UserId,
 )
 from constellate.factory import build_service
-from constellate.service import Service
+from constellate.service import Service, load_tags
 
 PLATFORMS = sorted(p.stem for p in CONFIG_DIR.glob("*.yaml"))  # config/ is the registry
 RESULTS_DIR = Path(__file__).resolve().parents[3] / "bench" / "results"
 DEV_ORIGIN = "http://localhost:5173"  # vite dev server
+MAX_ITEM_IDS = 100  # /v1/items — one hydrate round trip caps out here
 
 
 class SimilarRequest(BaseModel):
@@ -133,6 +134,23 @@ def create_app(service: Service | None = None) -> FastAPI:
         q: str = Query(min_length=1), limit: int = 20, platform: str | None = None
     ) -> list[Item]:
         return await (await svc(platform)).search_items(q, limit)
+
+    @app.get("/v1/items")
+    async def items(ids: str = Query(min_length=1), platform: str | None = None) -> list[Item]:
+        try:
+            parsed = [int(raw) for raw in ids.split(",") if raw.strip()][:MAX_ITEM_IDS]
+        except ValueError as exc:
+            raise HTTPException(422, "ids must be a comma-separated list of integers") from exc
+        if not parsed:
+            raise HTTPException(422, "ids must be a comma-separated list of integers")
+        return await (await svc(platform)).hydrate(parsed)
+
+    @app.get("/v1/tags")
+    async def tags() -> dict[str, str]:
+        try:
+            return load_tags()
+        except FileNotFoundError as exc:
+            raise HTTPException(404, str(exc)) from exc
 
     @app.get("/v1/users/{user_id}")
     async def user(user_id: UserId, platform: str | None = None) -> UserContext:
