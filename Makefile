@@ -1,12 +1,15 @@
 PLATFORM ?= lyra
 
-.PHONY: check lint type test seed load up down bench report
+.PHONY: check lint type test doc-check seed load up down bench report
 
-check: lint type test
+check: lint type test doc-check
 
 lint:
-	uv run ruff check src tests
-	uv run ruff format --check src tests
+	uv run ruff check src tests scripts
+	uv run ruff format --check src tests scripts
+
+doc-check:
+	uv run python scripts/check_docs.py
 
 type:
 	uv run mypy
