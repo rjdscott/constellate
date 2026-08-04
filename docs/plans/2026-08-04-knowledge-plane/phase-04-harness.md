@@ -81,3 +81,17 @@ narrative.
   `docs/research/2026-08-04-knowledge-plane-foundations/07-lyra-benchmark-findings.md`
   (one findings doc per platform, per user direction). Artifacts committed:
   results JSON + `bench/report.md`. Container work (phase 05) unblocked.
+- 2026-08-04 — **Independent review pass: 1 major, 7 minor — all fixed,
+  bench rerun.** The major was real and instructive: fusion tuning fused
+  depth-truncated top-50 arm lists while the pipeline fuses 250-deep
+  candidates; the artifact itself proved divergence (offline w=1.0 nDCG
+  0.042 vs actual hybrid 0.036). Fixed by collecting single-plane arms at
+  the pipeline's true fusion depth + an in-artifact fidelity check —
+  rerun shows exact agreement (0.0362 = 0.0362) and the best weight moved
+  1.5 → 2.0 (grid edge; widen before adopting). Minors: histogram
+  `recorded` count now exposed + asserted, errors split measured/warmup,
+  `achieved_hz` renamed `completion_hz`, p99.9 dropped from tables (5k
+  samples), `evaluate()` zero-fills run-absent queries, F6 times all 9
+  calls, runbook duration corrected (~1 h latency total). Final artifact:
+  `lyra-f7eb799-20260804T082917Z` (quality byte-identical again; latency
+  drift ~1% vs prior run). PR #9, CI green.

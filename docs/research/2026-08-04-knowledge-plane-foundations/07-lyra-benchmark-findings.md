@@ -31,9 +31,16 @@ pipeline, only `RetrievalRequest.planes` differs:
 
 Retrieval depth k=50; metrics via ir_measures; paired student-t via ranx;
 coverage/novelty hand-rolled (research 05). Fusion tuning grid-searches the
-graph weight in the pipeline's own `rrf` on a stratified validation half of
-the probes, scores on the held-out half — so the winning weight drops
-straight into `config/lyra.yaml` `fusion.weights`.
+graph weight in the pipeline's own `rrf` over per-plane candidate lists at
+the pipeline's true fusion depth (`candidate_multiplier × k` = 250), on a
+stratified validation half, scored on the held-out half. The artifact's
+`fidelity_check` proves the offline w=1.0 baseline reproduces the hybrid
+arm exactly (nDCG@10 0.0362 = 0.0362) — so the winning weight transfers to
+`config/lyra.yaml` `fusion.weights`. (The first run tuned over
+depth-truncated top-50 lists; the independent review caught the regime
+mismatch — best weight moved 1.5 → 2.0 once the inputs were faithful.
+Lesson: offline tuning is only as good as its reconstruction of the online
+system, and a fidelity check is cheap.)
 
 ## Headline numbers (200 probes)
 
@@ -82,27 +89,28 @@ Two lessons worth the stage:
 
 ## Fusion tuning (weighted RRF)
 
-Validation half (100 probes, stratified per kind, seed 42) → test half:
+Validation half (100 probes, stratified per kind, seed 42) → test half.
+Committed run `lyra-f7eb799-20260804T082917Z`:
 
 | graph weight | validation nDCG@10 |
 |---|---|
-| 0.25 | 0.0303 |
-| 0.5 | 0.0302 |
-| 0.75 | 0.0297 |
-| 1.0 (baseline) | 0.0427 |
-| **1.5 (best)** | **0.0481** |
-| 2.0 | 0.0475 |
+| 0.25 | 0.0276 |
+| 0.5 | 0.0275 |
+| 0.75 | 0.0271 |
+| 1.0 (baseline) | 0.0333 |
+| 1.5 | 0.0397 |
+| **2.0 (best)** | **0.0443** |
 
-Held-out test half: baseline nDCG@10 0.0418 → tuned **0.0479** (+15%
+Held-out test half: baseline nDCG@10 0.0391 → tuned **0.0486** (+24%
 relative). Consistent with the dilution finding: on this probe set the
-graph plane deserves more weight. Baseline k=60 equal weights stays in
-`config/lyra.yaml` (the honest default); the tuned weight is reported, not
-silently applied — flipping it is a config change with a fingerprint change,
-made deliberately per platform.
-
-Note the caveat: this tunes *for the graph-necessary probe set*. A
-production system would tune against a traffic-representative query mix;
-weight 1.5 here quantifies the lever, it doesn't prescribe the setting.
+graph plane deserves more weight. Two caveats, both honest: (1) the
+optimum sits at the *edge* of the grid — the true best weight may be
+higher still; widen the grid before ever adopting a value; (2) this tunes
+*for the graph-necessary probe set* — a production system would tune
+against a traffic-representative mix. Weight 2.0 quantifies the lever, it
+doesn't prescribe the setting. Baseline k=60 equal weights stays in
+`config/lyra.yaml`; flipping it is a deliberate config change with a
+fingerprint change, per platform.
 
 ## Flows F1–F6
 
@@ -126,30 +134,35 @@ single-process ceiling of an embedded design — the adapters' engine calls
 are synchronous, so concurrency buys queueing, not parallelism); they are
 not comparable to Orion/Hydra service latencies until those exist.
 
-Committed run `lyra-c368e54-20260804T071640Z`: warm mean 114.8ms →
-measured capacity 8.7/s.
+Committed run `lyra-f7eb799-20260804T082917Z`: warm mean 118.0ms →
+measured capacity 8.5/s. (p99.9 lives in the JSON but is decorative at
+5,000 samples — ~5 tail events — so tables stop at p99.)
 
-| rate/s | conc | p50ms | p95ms | p99ms | p99.9ms | max ms | errors |
-|---|---|---|---|---|---|---|---|
-| 6.1 | 1 | 127.7 | 156.0 | 173.3 | 206.3 | 234.2 | 0 |
-| 6.1 | 8 | 126.6 | 152.3 | 166.8 | 188.4 | 197.4 | 0 |
-| 6.1 | 32 | 126.3 | 151.3 | 166.1 | 185.9 | 216.1 | 0 |
-| 10.5 (saturation) | 32 | 61,440 | 107,545 | 111,542 | 113,312 | 113,771 | 0 |
+| rate/s | conc | p50ms | p95ms | p99ms | max ms | errors |
+|---|---|---|---|---|---|---|
+| 5.9 | 1 | 128.2 | 153.9 | 168.2 | 231.7 | 0 |
+| 5.9 | 8 | 128.4 | 154.8 | 169.2 | 198.5 | 0 |
+| 5.9 | 32 | 128.4 | 154.2 | 166.8 | 202.9 | 0 |
+| 10.2 (saturation) | 32 | 54,231 | 93,192 | 96,666 | 98,763 | 0 |
+
+A prior full run (different sha, ~30% background load on the box) measured
+capacity 8.7/s with p50 127.7ms — run-to-run latency drift ~1%, quality
+metrics byte-identical.
 
 Two findings, both talk-grade:
 
 1. **The single-process ceiling, measured.** p50/p99 are *identical* at
    concurrency 1, 8, and 32 — the embedded design's engine calls are
    synchronous in one process, so added concurrency buys queueing, never
-   parallelism. Throughput tops out at 8.7/s regardless. This is the
+   parallelism. Throughput tops out at ~8.5/s regardless. This is the
    honest cost of "no daemon, no docker" — and exactly the axis Orion and
    Hydra (real servers, real connection pools) get to attack.
-2. **Coordinated omission, demonstrated.** At 10.5/s arrival (1.2× the
-   8.7/s capacity) the open-loop harness reports p50 = **61 seconds** —
+2. **Coordinated omission, demonstrated.** At 10.2/s arrival (1.2× the
+   8.5/s capacity) the open-loop harness reports p50 = **54 seconds** —
    the queue grows without bound and every request is charged from its
    *scheduled* send time. A closed-loop load generator would have reported
-   ~115ms while silently throttling itself to 8.7/s. Same service, same
-   run — the methodology *is* the result.
+   ~120ms while silently throttling itself to capacity. Same service, same
+   run — a ~450× difference; the methodology *is* the result.
 
 ## Platform configuration & tuning record
 

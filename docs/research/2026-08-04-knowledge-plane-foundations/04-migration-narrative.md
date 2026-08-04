@@ -160,3 +160,19 @@ reported ~115ms. Coordinated omission isn't a footnote; it's a 500×
 difference in the same run. Artifacts: `bench/results/lyra-c368e54-*.json`,
 `bench/report.md`, findings + per-platform config record in
 `07-lyra-benchmark-findings.md`.
+
+## 2026-08-04 — Phase 04 addendum: the review catches the tuner grading its own homework
+
+An independent review pass over the harness branch found the one flaw that
+touched a headline number: fusion tuning had been fusing depth-truncated
+top-50 lists while the real pipeline fuses 250-deep candidates — and the
+committed artifact itself contained the proof (offline baseline nDCG 0.042
+vs the actual hybrid arm's 0.036; disjoint halves can't out-average their
+own full set). Rerun with faithful inputs plus an in-artifact fidelity
+check: exact agreement (0.0362 = 0.0362), and the "best" graph weight
+moved from 1.5 to 2.0 — the earlier value was an artifact of the wrong
+regime. Story beat for the talk: offline evaluation is only as good as its
+reconstruction of the online system, fidelity checks are cheap, and the
+final numbers (GO verdict, +24% tuned nDCG on held-out probes, grid-edge
+caveat) now rest on a tuner that provably fuses what the pipeline fuses.
+Final artifact: `bench/results/lyra-f7eb799-20260804T082917Z.json`.
