@@ -9,7 +9,7 @@ the tool's result as ``content``. Tools are ``{"name", "description",
 
 import os
 from dataclasses import dataclass, field
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 
 # 2026-08 pricing: https://www.anthropic.com/pricing (Haiku 4.5)
 HAIKU_45_USD_PER_MTOK_IN = 1.00
@@ -143,8 +143,8 @@ class AnthropicDriver:
             model=self.model,
             max_tokens=1024,
             temperature=0,  # pinned: both drivers run the suite at temperature 0
-            messages=to_anthropic_messages(messages),  # type: ignore[arg-type]
-            tools=to_anthropic_tools(tools),  # type: ignore[arg-type]
+            messages=cast(Any, to_anthropic_messages(messages)),
+            tools=cast(Any, to_anthropic_tools(tools)),
         )
         text = "".join(b.text for b in response.content if b.type == "text") or None
         tool_calls = [
