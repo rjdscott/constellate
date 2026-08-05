@@ -11,8 +11,6 @@ import os
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
-import httpx
-
 # 2026-08 pricing: https://www.anthropic.com/pricing (Haiku 4.5)
 HAIKU_45_USD_PER_MTOK_IN = 1.00
 HAIKU_45_USD_PER_MTOK_OUT = 5.00
@@ -31,6 +29,9 @@ class DriverTurn:
     tool_calls: list[ToolCall] = field(default_factory=list)
     input_tokens: int = 0
     output_tokens: int = 0
+    thinking_chars: int = (
+        0  # reasoning the driver received out-of-band (e.g. ollama message.thinking)
+    )
 
 
 class Driver(Protocol):
@@ -141,6 +142,7 @@ class AnthropicDriver:
         response = await self._client.messages.create(
             model=self.model,
             max_tokens=1024,
+            temperature=0,  # pinned: both drivers run the suite at temperature 0
             messages=to_anthropic_messages(messages),  # type: ignore[arg-type]
             tools=to_anthropic_tools(tools),  # type: ignore[arg-type]
         )
@@ -168,6 +170,8 @@ class OllamaDriver:
         self.base_url = base_url or os.environ.get("OLLAMA_URL", "http://localhost:11434")
 
     async def chat(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> DriverTurn:
+        import httpx  # lazy: `context` extra, keeps the pure converters importable without it
+
         payload = {
             "model": self.model,
             "messages": to_ollama_messages(messages),
@@ -180,6 +184,10 @@ class OllamaDriver:
             response.raise_for_status()
             data = response.json()
         message = data.get("message") or {}
+        # qwen3-class models return reasoning via message.thinking (ollama
+        # native thinking), not inline <think> tags — count it or it silently
+        # vanishes while still being paid for in eval_count
+        thinking = str(message.get("thinking") or "")
         tool_calls = [
             ToolCall(
                 name=tc["function"]["name"],
@@ -193,4 +201,5 @@ class OllamaDriver:
             tool_calls=tool_calls,
             input_tokens=int(data.get("prompt_eval_count") or 0),
             output_tokens=int(data.get("eval_count") or 0),
+            thinking_chars=len(thinking),
         )

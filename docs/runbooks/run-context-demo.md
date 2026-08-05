@@ -45,7 +45,7 @@ local-vs-API comparison artifact after a model or suite change.
    ```
 
    Expected: same table, much slower (~10 tok/s on the 28-core box;
-   qwen3's thinking mode inflates wall time per task). `est_cost_usd=0`.
+   qwen3's thinking (returned via Ollama's message.thinking field, counted in the artifact's thinking_chars) inflates wall time per task). `est_cost_usd=0`.
 
 4. Cross-platform task needs hydra up (`make up PLATFORM=hydra`); lyra
    needs seeded canonical data + `make load PLATFORM=lyra`. If a platform

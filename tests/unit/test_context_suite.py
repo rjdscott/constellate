@@ -422,3 +422,78 @@ def test_title_key_strips_alternate_title_parentheticals() -> None:
     key = _title_key("Diving Bell and the Butterfly, The (Scaphandre et le papillon, Le) (2007)")
     assert key == "diving bell and butterfly"
     assert _mentions_any("Top pick: **The Diving Bell and the Butterfly** (2007).", {key})
+
+
+def test_mentions_any_requires_word_boundaries() -> None:
+    from constellate.context.suite import _mentions_any, _title_key
+
+    up = _title_key("Up (2009)")
+    assert up == "up"
+    assert not _mentions_any("I joined a support group yesterday.", {up})
+    assert _mentions_any("You should watch Up tonight.", {up})
+    her = _title_key("Her (2013)")
+    assert not _mentions_any("Here's what I found.", {her})
+
+
+def test_grounding_reads_untruncated_result_not_digest() -> None:
+    from constellate.context.loop import DIGEST_CHARS, ToolCallRecord, Transcript, Turn
+    from constellate.context.suite import _retrieval_check
+
+    # a title that only exists BEYOND the digest cutoff must still ground
+    filler = '{"recommendations": [' + '{"pad": "' + "x" * DIGEST_CHARS + '"}, '
+    full = filler + '{"title": "Inception (2010)"}]}'
+    record = ToolCallRecord(
+        name="similar_movies",
+        args={"item_id": 2571, "k": 5, "platform": "lyra"},
+        result_digest=full[:DIGEST_CHARS],
+        result_json=full,
+    )
+    transcript = Transcript(
+        task_id="t",
+        turns=[Turn(role="assistant", text=None, tool_calls=[record])],
+        tool_calls_made=[],
+        final_text="The top pick is Inception.",
+        wall_ms=1.0,
+        input_tokens=0,
+        output_tokens=0,
+        hit_turn_limit=False,
+    )
+    check = _retrieval_check(
+        [{"tool": "similar_movies", "item_id": 2571, "k": 5, "platform": "lyra"}]
+    )
+    score = check(transcript)
+    assert score.answer_grounded
+
+
+def test_tool_error_is_fed_back_not_fatal() -> None:
+    import asyncio
+
+    from constellate.context.drivers import DriverTurn, ToolCall
+    from constellate.context.loop import _run_loop
+
+    class FakeDriver:
+        name = "fake"
+        model = "fake"
+
+        def __init__(self) -> None:
+            self.turns = [
+                DriverTurn(text=None, tool_calls=[ToolCall(name="boom", args={}, id="1")]),
+                DriverTurn(text="recovered", tool_calls=[]),
+            ]
+            self.seen_tool_content: list[str] = []
+
+        async def chat(self, messages, tools):  # type: ignore[no-untyped-def]
+            for m in messages:
+                if m["role"] == "tool":
+                    self.seen_tool_content.append(m["content"])
+            return self.turns.pop(0)
+
+    async def call_tool(name, args):  # type: ignore[no-untyped-def]
+        raise ValueError("unknown platform 'pluto'")
+
+    driver = FakeDriver()
+    transcript = asyncio.run(_run_loop(driver, "p", [], call_tool, max_turns=4))
+    assert transcript.final_text == "recovered"
+    record = transcript.turns[0].tool_calls[0]
+    assert record.error and "pluto" in record.error
+    assert any("pluto" in c for c in driver.seen_tool_content)

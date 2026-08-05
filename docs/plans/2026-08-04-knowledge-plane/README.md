@@ -55,6 +55,15 @@ Run after phase 08 when the harness is final, unless a trigger fires earlier:
   targets).
 - **Latency-harness rate sweep** — L6 do-differently; fold into any future
   harness change.
+- **Small-model size sweep on the context suite** (noted 2026-08-05,
+  research doc 13) — run qwen3:4b / llama3.2:3b / a 14B through the same
+  8-task suite to locate the chaining-fidelity cliff precisely; the suite
+  and scoring already exist, each run is one CLI invocation. Publication
+  feed: "how small can your agent be" with measured trajectories.
+- **Long-tail probe set** (noted 2026-08-05, findings 12) — probes drawn
+  from non-genome items would test SVD's fallback weakness and could flip
+  the svd-vs-neural verdict; probe generator currently cannot see that
+  population (L15).
 
 ## Decisions this plan executes
 

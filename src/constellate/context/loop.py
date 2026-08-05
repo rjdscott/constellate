@@ -23,11 +23,16 @@ _THINK_RE = re.compile(r"<think>(.*?)</think>", re.DOTALL)
 CallTool = Callable[[str, dict[str, Any]], Awaitable[Any]]
 
 
+DIGEST_CHARS = 500
+
+
 @dataclass
 class ToolCallRecord:
     name: str
     args: dict[str, Any]
-    result_digest: str  # first 500 chars of the tool's JSON result
+    result_digest: str  # first DIGEST_CHARS of the result — artifact/display only
+    result_json: str = ""  # untruncated — scoring reads THIS, never the digest
+    error: str | None = None  # tool raised; result fields hold the error payload
 
 
 @dataclass
@@ -87,7 +92,7 @@ async def _run_loop(
         input_tokens += driver_turn.input_tokens
         output_tokens += driver_turn.output_tokens
         text, chars = _strip_think(driver_turn.text)
-        thinking_chars += chars
+        thinking_chars += chars + driver_turn.thinking_chars
 
         if not driver_turn.tool_calls:
             final_text = text or ""
@@ -106,10 +111,24 @@ async def _run_loop(
         records: list[ToolCallRecord] = []
         for tc in driver_turn.tool_calls:
             tool_calls_made.append(tc)
-            result = await call_tool(tc.name, tc.args)
+            # a tool error must not sink the task (same posture as the MCP
+            # selftest): feed it back as the tool result so the model can
+            # recover, and record it for the scorer
+            error: str | None = None
+            try:
+                result = await call_tool(tc.name, tc.args)
+            except Exception as exc:
+                error = f"{type(exc).__name__}: {exc}"
+                result = {"error": error}
             result_json = json.dumps(result, default=str)
             records.append(
-                ToolCallRecord(name=tc.name, args=tc.args, result_digest=result_json[:500])
+                ToolCallRecord(
+                    name=tc.name,
+                    args=tc.args,
+                    result_digest=result_json[:DIGEST_CHARS],
+                    result_json=result_json,
+                    error=error,
+                )
             )
             messages.append({"role": "tool", "tool_call_id": tc.id, "content": result_json})
         turns.append(Turn(role="assistant", text=text, tool_calls=records))

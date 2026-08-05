@@ -93,8 +93,8 @@ def _first_item_id(digest: str) -> int | None:
 
 
 def _mentions_any(text: str, candidates: set[str]) -> bool:
-    haystack = _title_key(text)
-    return any(c in haystack for c in candidates if c)
+    haystack = f" {_title_key(text)} "
+    return any(f" {c} " in haystack for c in candidates if c)
 
 
 def _expect_calls(
@@ -129,7 +129,7 @@ def _retrieval_check(expected: list[dict[str, object]]) -> Callable[[Transcript]
         ok, problems = _expect_calls(transcript, expected)
         titles: set[str] = set()
         for record in _tool_records(transcript):
-            titles |= _titles_in_digest(record.result_digest)
+            titles |= _titles_in_digest(record.result_json or record.result_digest)
         grounded = bool(transcript.final_text) and _mentions_any(transcript.final_text, titles)
         if not grounded:
             problems.append("final answer missing or doesn't mention a returned title")
@@ -183,7 +183,7 @@ def _check_multistep(transcript: Transcript) -> TaskScore:
     if first.args.get("platform", "lyra") != "lyra":
         problems.append(f"call 0 arg platform: expected 'lyra', got {first.args.get('platform')!r}")
 
-    top_id = _first_item_id(first.result_digest)
+    top_id = _first_item_id(first.result_json or first.result_digest)
     if second.name != "explain_connection":
         problems.append(f"call 1: expected explain_connection, got {second.name!r}")
     else:
@@ -195,7 +195,7 @@ def _check_multistep(transcript: Transcript) -> TaskScore:
                 f"call 1 arg platform: expected 'lyra', got {second.args.get('platform')!r}"
             )
 
-    titles = _titles_in_digest(first.result_digest)
+    titles = _titles_in_digest(first.result_json or first.result_digest)
     grounded = bool(transcript.final_text) and _mentions_any(transcript.final_text, titles)
     if not grounded:
         problems.append("final answer missing or doesn't mention the similar-movies result")
@@ -221,7 +221,7 @@ def _check_cross_platform(transcript: Transcript) -> TaskScore:
 
     titles: set[str] = set()
     for r in similar:
-        titles |= _titles_in_digest(r.result_digest)
+        titles |= _titles_in_digest(r.result_json or r.result_digest)
     grounded = bool(transcript.final_text) and _mentions_any(transcript.final_text, titles)
     if not grounded:
         problems.append("final answer missing or doesn't mention a returned title")
@@ -333,13 +333,44 @@ async def run_suite(driver: Driver, *, reps: int) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
     for rep in range(reps):
         for task in TASKS:
-            transcript = await run_task(driver, task.prompt)
+            # one exploding task-rep (driver hiccup, hallucinated args the
+            # tool rejects) must not lose the rest of the run — record the
+            # failure and keep going, same posture as the MCP selftest
+            try:
+                transcript = await run_task(driver, task.prompt)
+            except Exception as exc:
+                transcript = Transcript(
+                    task_id=task.id,
+                    turns=[],
+                    tool_calls_made=[],
+                    final_text="",
+                    wall_ms=0.0,
+                    input_tokens=0,
+                    output_tokens=0,
+                    hit_turn_limit=False,
+                )
+                score = TaskScore(False, False, f"task crashed: {type(exc).__name__}: {exc}")
+                results.append(
+                    {"rep": rep, "task_id": task.id, "score": score, "transcript": transcript}
+                )
+                continue
             transcript.task_id = task.id
             score = task.check(transcript)
+            if transcript.hit_turn_limit:
+                score.notes = f"hit turn limit; {score.notes}"
             results.append(
                 {"rep": rep, "task_id": task.id, "score": score, "transcript": transcript}
             )
     return results
+
+
+def _slim_transcript(transcript: dict[str, Any]) -> dict[str, Any]:
+    """Artifacts store the human-readable digest, never the full tool JSON —
+    scoring already happened in memory against the untruncated results."""
+    for turn in transcript.get("turns", []):
+        for record in turn.get("tool_calls", []):
+            record.pop("result_json", None)
+    return transcript
 
 
 def build_artifact(driver: Driver, results: list[dict[str, Any]]) -> dict[str, Any]:
@@ -388,7 +419,7 @@ def build_artifact(driver: Driver, results: list[dict[str, Any]]) -> dict[str, A
                 "rep": r["rep"],
                 "task_id": r["task_id"],
                 "score": dataclasses.asdict(r["score"]),
-                "transcript": dataclasses.asdict(r["transcript"]),
+                "transcript": _slim_transcript(dataclasses.asdict(r["transcript"])),
             }
             for r in results
         ],
