@@ -36,6 +36,23 @@ regenerating `bench/report.md`. Phase 04's go/no-go verdict comes from here.
    artifact: .../bench/results/lyra-<sha>-<utc>.json
    ```
 
+   Benching the neural embedding arm (ADR 0006) — the config flip is the
+   experiment's control, so it stays manual and visible:
+
+   ```sh
+   uv sync --extra neural
+   make seed ARM=neural                  # once; caches *_neural.parquet
+   # add "embedding_arm: neural" under data: in config/<platform>.yaml
+   make load PLATFORM=<platform>         # dim probe rebuilds vector stores (256 -> 384)
+   make bench PLATFORM=<platform>        # artifact records embedding_arm: neural
+   # remove the line, then make load PLATFORM=<platform> to restore svd
+   ```
+
+   The loaders detect the arm switch by probing vector dim — row counts
+   are identical across arms, so if a load prints no rebuild line after a
+   config flip, stop and check `config/<platform>.yaml` before trusting
+   any number it produces.
+
 3. Regenerate the report over all committed results:
 
    ```sh
@@ -78,4 +95,5 @@ regenerating `bench/report.md`. Phase 04's go/no-go verdict comes from here.
 
 ## Last verified
 
-2026-08-04 — phase 04, Lyra on the 28-core/62GB dev box.
+2026-08-05 — phase 08, full {platform} × {arm} matrix on the 28-core/62GB
+dev box; arm-flip procedure exercised on all three platforms.
