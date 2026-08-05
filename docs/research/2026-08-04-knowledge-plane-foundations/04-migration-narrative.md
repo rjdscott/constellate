@@ -270,3 +270,22 @@ machinery (a health check with no I/O that could never see a platform
 die; L13) — fixed with probe-plus-evict and a kill test. Artifacts:
 `ui/`, `src/constellate/mcp_server.py`, screenshots in `assets/`,
 snapshot build serving the whole bench story from static files.
+
+## 2026-08-05 — Phase 08: the embedding becomes an experiment axis
+
+The second arm ADR 0006 promised: bge-small-en-v1.5 (384d, fastembed
+ONNX, ~2 min for the catalog on CPU) behind a one-line
+`data.embedding_arm` config flip, with loaders that detect the dim
+switch engines can't see (row counts don't change; L14's search_path
+incident — AGE's graph schema shadowing `public` via `"$user"` — made
+the reload path itself part of the curriculum). Six artifacts at one
+sha answer the ADR's question: SVD beats neural on the graph-flavored
+probe set (vector R@10 0.0213 vs 0.0145), hybrid beats both on every
+platform and both arms (p ≤ 0.0038), and the sleeper — the neural arm
+is bit-identical across faiss/pgvector-halfvec/qdrant while SVD leaks
+engine artifacts (halfvec fp16 dents it to 0.0108): the modern
+embedding is the portable one. The stratification built to police
+coverage asymmetry instead proved the probe set can't see it (L15) —
+scope made explicit, not discovered by an audience. Artifacts:
+`bench/results/*-fa9623e-*.json`, `bench/report.md` ablation section,
+`12-phase-08-findings.md`, explainer `11-explainer-embedding-ablation.md`.

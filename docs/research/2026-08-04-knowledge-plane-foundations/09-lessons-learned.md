@@ -301,3 +301,64 @@ the same code path.
 `tests/unit/test_api.py::test_post_warm_engine_death_is_a_typed_503_and_evicts`;
 `Service.health()` per-plane point lookups.
 **Post angle:** "My health check had 100% uptime. That was the bug."
+
+## L14 — The schema named after your role is a landmine with your name on it (phase 08)
+
+**What happened:** the phase-08 matrix died mid-run: orion's freshly
+loaded neural vectors vanished between `load: orion ready` and the bench
+five seconds later. Root cause was a three-way name collision. Postgres
+resolves unqualified names via `search_path = "$user", public`; our role
+is `constellate`; and AGE stores its graph as a schema named after the
+graph — also `constellate`, created in phase 05 *after* the original
+load. So the phase-05 load landed everything in `public` (no shadowing
+schema existed yet), but every *reload* after AGE's schema appeared
+silently created its tables inside the graph schema instead — including
+an empty `load_manifest`, which made every "done" step re-run. The AGE
+step then finished the job: `drop_graph(cascade)` drops the graph's
+schema, taking 25M freshly loaded rows with it. The load printed nothing
+but success the whole way down.
+**Principle:** implicit name resolution plus identically named
+namespaces is a time bomb with a long fuse — the collision arrives not
+when the code is written but when some later step creates the shadowing
+name. The first load worked; only reloads after phase 05 could die.
+**Do differently:** pin `search_path` explicitly in any session that
+does DDL. Never name a database role, a schema, and a graph the same
+thing, however tidy the branding feels.
+**For builders:** the diagnostic that cracked it was timestamp
+archaeology: a manifest row stamped today next to siblings stamped
+yesterday is a session writing to two different tables that share one
+name. And `automatic vacuum of table "constellate.constellate.interactions"`
+in the server log — db.schema.table — named the shadow schema outright.
+**Evidence:** matrix log 2026-08-05 02:39–02:41 (rebuild fired, all
+steps re-ran, bench failed `relation "item_vectors" does not exist`);
+fix in `load_orion.py` (`SET search_path = public` + incident comment).
+**Post angle:** "Postgres, AGE, and my username walked into a schema.
+Only two walked out."
+
+## L15 — A probe set inherits the blind spots of its generator (phase 08)
+
+**What happened:** ADR 0006 demanded genome-subset stratification because
+SVD natively covers only 22% of the catalog. Built it, ran it — and the
+subset came back 200 of 200 probes on every run. The probe generator
+works from graph structure, tag bridges need genome tags, so every probe
+was genome-covered by construction. The stratification machinery's first
+real output was proving the asymmetry it was built to control for cannot
+occur in this probe set — which simultaneously revealed that SVD's
+biggest real-world weakness (78% of the catalog on fallback vectors) is
+invisible to the entire benchmark.
+**Principle:** an eval built from one signal cannot measure failures
+outside that signal's reach. The probe set isn't wrong, it's *scoped* —
+and the scope was implicit until a control designed for a different
+purpose exposed it.
+**Do differently:** when generating probes from structure X, write down
+in the probe doc what population X excludes, at generation time — don't
+wait for a stratifier to find it.
+**For builders:** the stratification wasn't wasted: a control that
+returns "condition absent" is evidence, and it upgraded the findings doc
+from "we compared arms" to "we compared arms and know exactly where the
+comparison cannot see."
+**Evidence:** `genome_subset.n_probes == 200` in all six
+`bench/results/*-fa9623e-*.json`; honesty section in
+`12-phase-08-findings.md`.
+**Post angle:** "My fairness check found nothing to correct. That was
+the finding."

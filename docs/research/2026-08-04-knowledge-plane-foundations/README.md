@@ -22,6 +22,8 @@
 | `08-orion-benchmark-findings.md` | phase-05 results: exact graph equivalence, pgvector recall delta, the single-process-ceiling finding, CTE-vs-AGE delta, config record |
 | `09-lessons-learned.md` | living cross-phase lessons doc (append per phase) — feeds end-of-project reflection and public write-ups |
 | `10-hydra-benchmark-findings.md` | phase-06 results: four-engine ranking equivalence (+ committed parity test), real-HNSW vs halfvec recall, the graph-leg latency cost of composition, CDC-shape rebuild proof, determinism boundary, config record |
+| `11-explainer-embedding-ablation.md` | newcomer explainer: what embeddings are, SVD vs neural arms, what a matrix bench run does and why it's slow — workshop teaching material |
+| `12-phase-08-findings.md` | phase-08 results: svd beats neural on graph-flavored probes, hybrid beats both on every arm/platform, neural arm bit-stable across all engine stacks (the quantization-robustness sleeper), coverage-stratification honesty, config record |
 
 ## Naming map (ADR 0009, decided after these docs were written)
 
