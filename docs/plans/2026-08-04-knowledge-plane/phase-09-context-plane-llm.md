@@ -16,12 +16,12 @@ citable close and this phase's write-up stands alone.
 
 ## Tasks
 
-- [ ] ADR: dual-driver context-plane demonstration (Anthropic + local; model picks; what is and is not a citable claim)
-- [ ] Driver adapter: one interface, `anthropic` and `local` (OpenAI-compatible or Ollama) implementations; MCP tool-use loop shared
-- [ ] Task suite: fixed context-plane tasks (recommend, explain-connection, multi-step) with deterministic scoring of tool-call fidelity
-- [ ] Comparison runs: both drivers over the suite; latency + token cost + fidelity captured to a committed artifact
-- [ ] Research doc: implementation notes, performance, strengths/weaknesses, cost model from small (this box) to large scale
-- [ ] Runbook: run the context-plane demo (both drivers), offline fallback story for the talk
+- [x] ADR: dual-driver context-plane demonstration (Anthropic + local; model picks; what is and is not a citable claim) — [0012](../../adr/0012-context-plane-dual-llm-drivers.md)
+- [x] Driver adapter: one interface, `anthropic` and `local` (OpenAI-compatible or Ollama) implementations; MCP tool-use loop shared
+- [x] Task suite: fixed context-plane tasks (recommend, explain-connection, multi-step) with deterministic scoring of tool-call fidelity
+- [x] Comparison runs: both drivers over the suite; latency + token cost + fidelity captured to a committed artifact
+- [x] Research doc: implementation notes, performance, strengths/weaknesses, cost model from small (this box) to large scale
+- [x] Runbook: run the context-plane demo (both drivers), offline fallback story for the talk
 
 ## Verification
 
@@ -36,3 +36,26 @@ Driver adapter + suite code, committed comparison artifact, research doc in
 `docs/research/`, ADR, runbook.
 
 ## Progress log
+
+- 2026-08-05 — Phase opened on `feat/context-plane-llm`. ADR 0012 Accepted
+  (dual drivers: Anthropic `claude-haiku-4-5-20251001` + local Qwen3 8B via
+  user-space Ollama; artifacts in `bench/context/`, outside the benchmark
+  report's glob on purpose — demo-class numbers, never citable). API key in
+  gitignored `.env` (verified ignored before the key landed). Ollama
+  install detour: the documented `.tgz` release asset 404s as of v0.32.5
+  (assets moved to `.tar.zst`); installing from the zst tarball,
+  user-space, no root.
+
+- 2026-08-05 — Built and rehearsed end to end. `constellate/context/`:
+  neutral Driver protocol, Anthropic + Ollama drivers, agent loop over the
+  in-process FastMCP client, 8-task suite, deterministic tool-behavior
+  scoring, artifacts in `bench/context/`. Live rehearsal found two scorer
+  bugs before any model bug (title normalization vs "X, The" rewrites and
+  ml-25m alternate-title parentheticals — both unit-pinned now). Results:
+  Haiku 4.5 fidelity 1.00 ($0.12/run); qwen3:8b 0.88 — perfect on all
+  single-tool tasks, 0/3 on multi-step chaining, where it fetched the
+  right answer then called explain_connection with an id from nowhere and
+  confabulated fluent prose about the *right* movie over the *wrong*
+  call. ADR 0012's ≥90% rehearsal bar not met: API carries the live demo,
+  local is the offline fallback + the teaching exhibit. Research doc 13,
+  runbook run-context-demo. Next: review round, gate.

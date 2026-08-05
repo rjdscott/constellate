@@ -32,3 +32,4 @@ pipeline (research → ADR → plan → audit).
 | [0009](0009-platform-codenames-constellations.md) | Platform naming: constellation codenames (Lyra/Orion/Hydra/Eridanus) + architecture epithets | Accepted |
 | [0010](0010-package-named-constellate.md) | Python package named `constellate`, not `kp` | Accepted |
 | [0011](0011-multi-platform-api-single-process.md) | Explorer API: one process, platform registry, `platform` parameter | Accepted |
+| [0012](0012-context-plane-dual-llm-drivers.md) | Context plane demo: dual LLM drivers (Anthropic Haiku + local Qwen3/Ollama) behind one adapter | Accepted |

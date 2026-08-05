@@ -289,3 +289,28 @@ coverage asymmetry instead proved the probe set can't see it (L15) —
 scope made explicit, not discovered by an audience. Artifacts:
 `bench/results/*-fa9623e-*.json`, `bench/report.md` ablation section,
 `12-phase-08-findings.md`, explainer `11-explainer-embedding-ablation.md`.
+
+## 2026-08-05 — ADR 0012: the context plane gets real consumers
+
+Phase 09 opens with the decision the LLM-question conversation settled:
+both a local small model (Qwen3 8B, user-space Ollama, CPU) and
+Anthropic's API (Haiku 4.5) drive the MCP tools behind one adapter, and
+the comparison — implementation, tool fidelity, latency, cost from this
+box to platform scale — is itself the deliverable, mirroring the
+one-contract-many-engines pattern the whole project runs on. Demo-class
+numbers stay quarantined from the benchmark harness (bench/context/,
+ADR 0011 discipline). Artifacts: ADR 0012, phase-09 plan file.
+
+## 2026-08-05 — Phase 09: the context plane, driven for real
+
+Two LLM consumers behind one adapter (ADR 0012) drove the MCP tools
+through the same service layer the benchmark measures: Haiku 4.5 over
+the API, qwen3:8b on this box via user-space Ollama. Fixed 8-task suite,
+tool-trajectory scoring. Results: 1.00 vs 0.88 fidelity — and the 0.12
+gap is one task, multi-step chaining, failed identically all three reps
+with fluent prose confabulated over a wrong tool call (L16: score the
+trajectory, not the prose; the rehearsal also had to debug the scorer
+itself before it could be trusted to accuse the model). Demo verdict
+per the ADR's trigger: API carries the stage, local is the offline
+fallback and the teaching exhibit. Artifacts: bench/context/*.json,
+research doc 13, run-context-demo runbook.

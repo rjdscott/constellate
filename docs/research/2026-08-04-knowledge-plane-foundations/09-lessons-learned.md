@@ -362,3 +362,38 @@ comparison cannot see."
 `12-phase-08-findings.md`.
 **Post angle:** "My fairness check found nothing to correct. That was
 the finding."
+
+## L16 — Score the trajectory, not the prose (phase 09)
+
+**What happened:** the context-plane suite scored qwen3:8b at 0/3 on the
+multi-step task. The transcripts read flawlessly: it retrieved the right
+similar movie (Inception, 79132), then wrote a fluent, correct-sounding
+explanation of that connection. But the actual `explain_connection` call
+underneath used item 589 — an id appearing nowhere in the conversation —
+and the prose narrated the call it *should* have made, not the one it
+made. Temperature 0, three reps, same wrong call, same confident story.
+Any prose-level eval, and any human watching a demo, scores that a pass.
+And before trusting the scorer's verdicts at all, the rehearsal first
+had to fix the scorer itself: two rounds of false hallucination-flags
+(models rewriting "Terminator, The" as "The Terminator"; ml-25m titles
+embedding original-language alternates in parentheticals) where perfect
+answers scored zero.
+**Principle:** with nondeterministic actors, ground truth lives in the
+tool trajectory — which tool, which arguments, drawn from which prior
+results — never in how the answer reads. And a deterministic 0-across-
+all-reps on a task whose transcripts look right means suspect the
+scorer before the model; both can lie, in opposite directions.
+**Do differently:** build the trajectory scorer before the first live
+run, and rehearse it against a strong model first — a driver you expect
+to score ~1.0 is the scorer's own test fixture. Only then point it at
+the model you're actually evaluating.
+**For builders:** small-model tool use in 2026 fails at argument
+*chaining*, not argument *formatting* — the 2023 malformed-JSON story is
+over; the new failure mode is values not carried across calls, papered
+over by fluent confabulation. Score args against prior results
+explicitly.
+**Evidence:** `bench/context/local-qwen3-8b-20260805T065207Z.json`
+(multistep reps 1–3), `anthropic-...T064807Z.json` (same task 3/3);
+`_title_key` tests in tests/unit/test_context_suite.py; research doc 13.
+**Post angle:** "The demo looked perfect. The tool call was for the
+wrong movie. Only one of those is data."
