@@ -33,6 +33,12 @@
 | 08 | [Neural arm + final report](phase-08-neural-arm-and-report.md) | 🟢 Completed | 2026-08-05 |
 | 09 | [Context plane: LLM consumers, local vs API](phase-09-context-plane-llm.md) | 🟢 Completed | 2026-08-05 |
 
+## Handover
+
+Session-end state + ranked next steps: [handover-2026-08-05.md](handover-2026-08-05.md).
+Decisions recorded there: talk = conference slot 30–45 min; publication =
+blog post series off research doc 13's threads.
+
 ## Parked experiments (triggered, not scheduled)
 
 Run after phase 08 when the harness is final, unless a trigger fires earlier:
