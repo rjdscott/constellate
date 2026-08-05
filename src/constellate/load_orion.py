@@ -253,6 +253,13 @@ async def load_orion(canonical: Path = CANONICAL_DIR, dsn: str = ORION_DSN) -> N
             f"load: cannot reach orion at {dsn} — run `make up PLATFORM=orion`"
         ) from exc
     try:
+        # postgres defaults search_path to `"$user", public` and the role is
+        # named constellate — the same name AGE uses for its graph SCHEMA. Once
+        # phase 05 created that graph, every unqualified CREATE in a reload
+        # landed inside it, and drop_graph(cascade) then nuked the freshly
+        # loaded tables (2026-08-05 incident: vanished item_vectors mid-bench).
+        # Pin the load session to public; _load_age sets its own path.
+        await conn.execute("SET search_path = public")
         await conn.execute(SCHEMA)
         await _rebuild_if_dim_changed(conn, canonical, item_file, "item_vectors")
         await _rebuild_if_dim_changed(conn, canonical, user_file, "user_vectors")

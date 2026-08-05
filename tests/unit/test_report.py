@@ -4,7 +4,7 @@ read, which real platform configs satisfy."""
 
 from typing import Any
 
-from constellate.bench.report import _arm, embedding_ablation, equivalence
+from constellate.bench.report import _arm, chronological, embedding_ablation, equivalence
 
 RETRIEVAL_ARMS = ("vector_only", "graph_only", "hybrid")
 
@@ -114,3 +114,21 @@ def test_equivalence_partitions_arms_into_separate_sections() -> None:
     svd_section = text.split("— svd")[1].split("## Cross-platform")[0]
     assert "orion-svd" in svd_section
     assert "orion-neural" not in svd_section
+
+
+def test_chronological_orders_by_utc_not_filename() -> None:
+    # sha sits before the timestamp in artifact filenames, so filename order
+    # inverts chronology whenever a lexicographically-smaller sha is newer —
+    # the exact case that would silently serve a stale ablation baseline
+    old = {**_artifact("lyra", "svd"), "utc": "2026-08-05T01:00:00+00:00"}
+    new = {**_artifact("lyra", "neural"), "utc": "2026-08-10T09:00:00+00:00"}
+    filename_order = {"lyra-fa9623e-20260805T010000Z": old, "lyra-1a2b3c4-20260810T090000Z": new}
+    assert sorted(filename_order) != [
+        "lyra-fa9623e-20260805T010000Z",
+        "lyra-1a2b3c4-20260810T090000Z",
+    ]
+
+    ordered = chronological(dict(sorted(filename_order.items())))
+    assert [a["utc"] for a in ordered.values()] == [old["utc"], new["utc"]]
+    # newest-per-(platform, arm) picks ride on insertion order downstream
+    assert list(ordered)[-1] == "lyra-1a2b3c4-20260810T090000Z"

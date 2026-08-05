@@ -128,7 +128,7 @@ async def _build_hydra(cfg: PlatformConfig) -> Service:
             prefer_grpc=True,
             grpc_port=int(str(vec_cfg.get("grpc_port", 16334))),
         )
-        vector = QdrantVector(client, dim=cfg.data.embedding_dim)
+        vector = QdrantVector(client)
         graph_cfg = cfg.engines.get("graph", {})
         graph_adapter = str(graph_cfg.get("adapter", "memgraph"))
         if graph_adapter != "memgraph":

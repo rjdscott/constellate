@@ -78,8 +78,19 @@ flows/API/bench against it, or switching its graph adapter (CTE ↔ AGE).
   Seen after the compose project rename orphaned the old volume.
 - **Port 15432 taken** — set `ORION_DSN` and map another host port; the
   scheme (default+10000) exists precisely so 5432-range clashes don't bite.
+- **Tables vanish on reload / `relation "item_vectors" does not exist`
+  right after `load: orion ready`** — `search_path` defaults to
+  `"$user", public`, the role is `constellate`, and AGE's graph schema is
+  *also* named `constellate` (created by the age_graph step). Any reload
+  after that schema exists sends unqualified CREATEs into the graph
+  schema, where `drop_graph(cascade)` then destroys them. The loader now
+  pins `SET search_path = public`; if you see this on an old checkout,
+  that's the fix. Symptom fingerprint: a `load_manifest` row stamped
+  today next to siblings stamped earlier, and `db.schema.table` triples
+  like `constellate.constellate.interactions` in the server log. Hit
+  2026-08-05 mid bench matrix (see lessons L14).
 
 ## Last verified
 
-2026-08-04 — phase 05, PG 18.1 / AGE 1.7.0 / pgvector 0.8.6, smoke green
-on both graph adapters (CTE F1 141 ms, AGE F1 404 ms).
+2026-08-05 — phase 08, PG 18.1 / AGE 1.7.0 / pgvector 0.8.6, svd + neural
+arm loads green, dim-change rebuild verified (256 → 384 → 256).

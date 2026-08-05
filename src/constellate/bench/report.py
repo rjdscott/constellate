@@ -27,6 +27,14 @@ def _arm(artifact: dict[str, Any]) -> str:
     return str(artifact.get("embedding_arm", "svd"))
 
 
+def chronological(artifacts: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """Order by each artifact's own utc stamp. Filenames sort sha-before-
+    timestamp, so filename order stops tracking chronology the moment two
+    shas coexist for one platform — and both the equivalence baseline and
+    the ablation's newest-per-arm pick ride on insertion order."""
+    return dict(sorted(artifacts.items(), key=lambda kv: str(kv[1].get("utc", ""))))
+
+
 def _quality_tolerance(platform: str) -> float | None:
     """Equivalence tolerance vs Lyra — stated top-level in config/<platform>.yaml
     under bench (raw yaml read: a bench parameter, deliberately outside the
@@ -85,6 +93,9 @@ def _ablation_rows(
     for arm in RETRIEVAL_ARMS:
         s, n = svd[arm], neural[arm]
         r_delta, ndcg_delta = n["R@10"] - s["R@10"], n["nDCG@10"] - s["nDCG@10"]
+        # float epsilon renders as "-0.0000" under {:+.4f}; clamp to true zero
+        r_delta = 0.0 if abs(r_delta) < 5e-5 else r_delta
+        ndcg_delta = 0.0 if abs(ndcg_delta) < 5e-5 else ndcg_delta
         lines.append(
             f"| {arm} | {s['R@10']:.4f} | {n['R@10']:.4f} | {r_delta:+.4f} "
             f"| {s['nDCG@10']:.4f} | {n['nDCG@10']:.4f} | {ndcg_delta:+.4f} |"
@@ -250,6 +261,7 @@ def _graph_adapter(artifact: dict[str, Any]) -> str:
 
 
 def render_markdown(artifacts: dict[str, dict[str, Any]]) -> str:
+    artifacts = chronological(artifacts)
     lines = ["# Constellate benchmark report", ""]
     if len(artifacts) > 1:
         lines += [
