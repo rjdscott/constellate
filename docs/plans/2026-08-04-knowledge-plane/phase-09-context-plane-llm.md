@@ -59,3 +59,17 @@ Driver adapter + suite code, committed comparison artifact, research doc in
   call. ADR 0012's ≥90% rehearsal bar not met: API carries the live demo,
   local is the offline fallback + the teaching exhibit. Research doc 13,
   runbook run-context-demo. Next: review round, gate.
+- 2026-08-05 — Adversarial review (Sonnet worker, Fable-verified): four
+  majors, all in the scoring/measurement machinery, all fixed same day
+  with regression tests — grounding read a 500-char digest instead of the
+  full tool result (8 of 10 returned titles invisible in the committed
+  cross-platform artifact), substring title matching would false-positive
+  on short real titles (Up/It/Her), the loop had zero error isolation for
+  a two-network-backend demo, and the GPU breakeven number was ~35% high
+  (288k not 400k). Sharpest minor: the Anthropic driver ran at API-default
+  temperature while the doc implied both drivers pinned — now pinned, and
+  qwen3's 57k chars/run of reasoning (silently dropped via ollama's
+  message.thinking field) now captured. Both artifacts regenerated under
+  pinned conditions: Haiku 1.00, qwen3:8b 0.88, the wrong chaining call
+  bit-identical across independent runs. Sixth consecutive review whose
+  top findings were proof machinery. PR #23 merged; phase closed.
