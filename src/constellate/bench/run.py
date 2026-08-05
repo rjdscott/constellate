@@ -42,7 +42,7 @@ from constellate.config import PlatformConfig, load_config
 from constellate.core.fusion import rrf
 from constellate.core.types import Candidate, PlaneName, RetrievalRequest
 from constellate.factory import build_service
-from constellate.ingest import CANONICAL_DIR
+from constellate.ingest import CANONICAL_DIR, vector_files
 from constellate.service import Service
 
 RESULTS_DIR = Path(__file__).resolve().parents[3] / "bench" / "results"
@@ -159,7 +159,21 @@ def tune_graph_weight(
     }
 
 
-def quality_section(qrels: QrelsDict, runs: dict[str, RunDict]) -> dict[str, Any]:
+def genome_subset_qids(qrels: QrelsDict, genome_covered: set[int]) -> set[str]:
+    """Probe qids whose seed AND every expected item are genome-covered —
+    the apples-to-apples slice where SVD isn't falling back to a genre mean
+    (ADR 0006). Qid format is ``<kind>:<seed_item_id>``."""
+    subset = set()
+    for qid, rels in qrels.items():
+        seed_id = int(qid.split(":", 1)[1])
+        if seed_id in genome_covered and all(int(doc) in genome_covered for doc in rels):
+            subset.add(qid)
+    return subset
+
+
+def quality_section(
+    qrels: QrelsDict, runs: dict[str, RunDict], cfg: PlatformConfig
+) -> dict[str, Any]:
     catalog_size = len(pd.read_parquet(CANONICAL_DIR / "items.parquet", columns=["item_id"]))
     # popularity for novelty comes from train interactions (items.parquet
     # carries no aggregates; those live in the relational plane)
@@ -184,6 +198,26 @@ def quality_section(qrels: QrelsDict, runs: dict[str, RunDict]) -> dict[str, Any
         m: round(arms["hybrid"]["overall"][m] - arms["vector_only"]["overall"][m], 4)
         for m in arms["hybrid"]["overall"]
     }
+
+    # genome-subset stratification (ADR 0006): SVD covers ~13.8k items
+    # natively, the rest fall back to a genre-mean vector. Restricting to
+    # probes fully inside the genome-covered set is the fair svd-vs-neural
+    # comparison — fallback vectors excluded.
+    item_file = vector_files(cfg.data.embedding_arm)[0]
+    genome = pd.read_parquet(CANONICAL_DIR / item_file, columns=["item_id", "has_genome"])
+    covered = {int(i) for i in genome.loc[genome["has_genome"], "item_id"]}
+    subset_qids = genome_subset_qids(qrels, covered)
+    if subset_qids:
+        subset_qrels = {qid: qrels[qid] for qid in subset_qids}
+        genome_subset: dict[str, Any] = {
+            "n_probes": len(subset_qids),
+            "arms": {arm: evaluate(subset_qrels, run) for arm, run in runs.items()},
+        }
+    else:
+        genome_subset = {"n_probes": 0}
+
+    native = catalog_size if cfg.data.embedding_arm == "neural" else int(genome["has_genome"].sum())
+
     return {
         "n_probes": len(qrels),
         "arms": arms,
@@ -192,6 +226,13 @@ def quality_section(qrels: QrelsDict, runs: dict[str, RunDict]) -> dict[str, Any
         "coverage": {a: round(coverage(t, catalog_size), 4) for a, t in top10.items()},
         "novelty": {
             a: round(novelty(t, n_ratings, total_interactions), 2) for a, t in top10.items()
+        },
+        "genome_subset": genome_subset,
+        "embedding_coverage": {
+            "arm": cfg.data.embedding_arm,
+            "items": catalog_size,
+            "native": native,
+            "fraction_native": round(native / catalog_size, 4) if catalog_size else 0.0,
         },
     }
 
@@ -292,9 +333,11 @@ async def run_bench(platform: str, *, samples: int, warmup: int, skip_latency: b
         print(f"quality: {len(probes)} probes x {len(ARMS)} arms ...")
         deep_k = cfg.retrieval.candidate_multiplier * FETCH_K
         qrels, runs, deep = await collect_arm_runs(service, probes, deep_k)
-        quality = quality_section(qrels, runs)
+        quality = quality_section(qrels, runs, cfg)
         delta = quality["ablation_delta_hybrid_vs_vector"]
         print(f"  ablation delta (hybrid - vector_only): {delta}")
+        n_genome = quality["genome_subset"]["n_probes"]
+        print(f"  genome subset: {n_genome} of {quality['n_probes']} probes")
 
         fusion = tune_graph_weight(
             qrels,
@@ -345,6 +388,7 @@ async def run_bench(platform: str, *, samples: int, warmup: int, skip_latency: b
         "git_sha": _git_sha(),
         "utc": datetime.now(UTC).isoformat(timespec="seconds"),
         "config_fingerprint": cfg.fingerprint(),
+        "embedding_arm": cfg.data.embedding_arm,
         "latency_indicative": True,  # in-process, single-tenant, no network hop
         "host": {
             "machine": host_platform.machine(),

@@ -18,6 +18,13 @@ REPORT_PATH = RESULTS_DIR.parent / "report.md"
 CONFIG_DIR = Path(__file__).resolve().parents[3] / "config"
 P_THRESHOLD = 0.05
 EQUIVALENCE_METRICS = ("R@10", "nDCG@10")
+RETRIEVAL_ARMS = ("vector_only", "graph_only", "hybrid")
+
+
+def _arm(artifact: dict[str, Any]) -> str:
+    """Embedding arm (ADR 0006). Artifacts predating the dual-arm ablation
+    carry no `embedding_arm` key — they're all svd, the only arm that existed."""
+    return str(artifact.get("embedding_arm", "svd"))
 
 
 def _quality_tolerance(platform: str) -> float | None:
@@ -34,27 +41,93 @@ def _quality_tolerance(platform: str) -> float | None:
 
 def equivalence(artifacts: dict[str, dict[str, Any]]) -> list[str]:
     """Hybrid-arm quality deltas of every non-Lyra platform vs the newest
-    Lyra run — within tolerance proves the abstraction holds (phase 05)."""
-    lyra = [a for a in artifacts.values() if a["platform"] == "lyra"]
-    others = {name: a for name, a in artifacts.items() if a["platform"] != "lyra"}
-    if not lyra or not others:
-        return []
-    base = lyra[-1]["quality"]["arms"]["hybrid"]["overall"]
+    Lyra run, partitioned by embedding arm (ADR 0006) — svd and neural
+    numbers aren't comparable across platforms, so each arm gets its own
+    newest-Lyra baseline and its own section. Within tolerance proves the
+    abstraction holds (phase 05)."""
+    by_arm: dict[str, dict[str, dict[str, Any]]] = {}
+    for name, artifact in artifacts.items():
+        by_arm.setdefault(_arm(artifact), {})[name] = artifact
+
+    lines: list[str] = []
+    for arm in sorted(by_arm):
+        arm_artifacts = by_arm[arm]
+        lyra = [a for a in arm_artifacts.values() if a["platform"] == "lyra"]
+        others = {name: a for name, a in arm_artifacts.items() if a["platform"] != "lyra"}
+        if not lyra or not others:
+            continue
+        base = lyra[-1]["quality"]["arms"]["hybrid"]["overall"]
+        lines += [
+            f"## Cross-platform quality equivalence (hybrid arm, vs Lyra) — {arm}",
+            "",
+            "| run | " + " | ".join(EQUIVALENCE_METRICS) + " | tolerance | verdict |",
+            "|---|" + "---|" * (len(EQUIVALENCE_METRICS) + 2),
+        ]
+        for name, artifact in others.items():
+            overall = artifact["quality"]["arms"]["hybrid"]["overall"]
+            deltas = {m: overall[m] - base[m] for m in EQUIVALENCE_METRICS}
+            tolerance = _quality_tolerance(artifact["platform"])
+            ok = tolerance is not None and all(abs(d) <= tolerance for d in deltas.values())
+            cells = " | ".join(f"{deltas[m]:+.4f}" for m in EQUIVALENCE_METRICS)
+            tol = f"±{tolerance}" if tolerance is not None else "unset"
+            lines.append(f"| {name} | {cells} | {tol} | {'within' if ok else '**OUTSIDE**'} |")
+        lines.append("")
+    return lines
+
+
+def _ablation_rows(
+    svd: dict[str, dict[str, float]], neural: dict[str, dict[str, float]]
+) -> list[str]:
     lines = [
-        "## Cross-platform quality equivalence (hybrid arm, vs Lyra)",
-        "",
-        "| run | " + " | ".join(EQUIVALENCE_METRICS) + " | tolerance | verdict |",
-        "|---|" + "---|" * (len(EQUIVALENCE_METRICS) + 2),
+        "| retrieval arm | R@10 svd | R@10 neural | delta | nDCG@10 svd | nDCG@10 neural | delta |",
+        "|---|---|---|---|---|---|---|",
     ]
-    for name, artifact in others.items():
-        overall = artifact["quality"]["arms"]["hybrid"]["overall"]
-        deltas = {m: overall[m] - base[m] for m in EQUIVALENCE_METRICS}
-        tolerance = _quality_tolerance(artifact["platform"])
-        ok = tolerance is not None and all(abs(d) <= tolerance for d in deltas.values())
-        cells = " | ".join(f"{deltas[m]:+.4f}" for m in EQUIVALENCE_METRICS)
-        tol = f"±{tolerance}" if tolerance is not None else "unset"
-        lines.append(f"| {name} | {cells} | {tol} | {'within' if ok else '**OUTSIDE**'} |")
-    lines.append("")
+    for arm in RETRIEVAL_ARMS:
+        s, n = svd[arm], neural[arm]
+        r_delta, ndcg_delta = n["R@10"] - s["R@10"], n["nDCG@10"] - s["nDCG@10"]
+        lines.append(
+            f"| {arm} | {s['R@10']:.4f} | {n['R@10']:.4f} | {r_delta:+.4f} "
+            f"| {s['nDCG@10']:.4f} | {n['nDCG@10']:.4f} | {ndcg_delta:+.4f} |"
+        )
+    return lines
+
+
+def embedding_ablation(artifacts: dict[str, dict[str, Any]]) -> list[str]:
+    """svd vs neural (ADR 0006), newest artifact per (platform, arm). Renders
+    only for platforms with a run of both arms — omitted entirely otherwise,
+    so svd-only history stays unaffected."""
+    newest: dict[str, dict[str, dict[str, Any]]] = {}
+    for artifact in artifacts.values():
+        newest.setdefault(artifact["platform"], {})[_arm(artifact)] = artifact
+    eligible = {p: arms for p, arms in newest.items() if "svd" in arms and "neural" in arms}
+    if not eligible:
+        return []
+
+    lines = ["## Embedding arm ablation (svd vs neural)", ""]
+    for platform in sorted(eligible):
+        svd_a, neural_a = eligible[platform]["svd"], eligible[platform]["neural"]
+        svd_cov = svd_a["quality"]["embedding_coverage"]["fraction_native"]
+        neural_cov = neural_a["quality"]["embedding_coverage"]["fraction_native"]
+        lines += [
+            f"### {platform}",
+            "",
+            f"Native embedding coverage: svd {svd_cov:.4f}, neural {neural_cov:.4f}.",
+            "",
+            *_ablation_rows(
+                {arm: svd_a["quality"]["arms"][arm]["overall"] for arm in RETRIEVAL_ARMS},
+                {arm: neural_a["quality"]["arms"][arm]["overall"] for arm in RETRIEVAL_ARMS},
+            ),
+            "",
+        ]
+        svd_gs = svd_a["quality"].get("genome_subset", {})
+        neural_gs = neural_a["quality"].get("genome_subset", {})
+        if svd_gs.get("n_probes") and neural_gs.get("n_probes"):
+            lines += [
+                f"Genome subset ({svd_gs['n_probes']} probes, fallback vectors excluded):",
+                "",
+                *_ablation_rows(svd_gs["arms"], neural_gs["arms"]),
+                "",
+            ]
     return lines
 
 
@@ -142,7 +215,8 @@ def _run_section(artifact: dict[str, Any], name: str) -> list[str]:
         f"## {name}",
         "",
         f"- platform `{artifact['platform']}` · sha `{artifact['git_sha']}` · "
-        f"{artifact['utc']} · config `{artifact['config_fingerprint']}`",
+        f"{artifact['utc']} · config `{artifact['config_fingerprint']}` · "
+        f"arm `{_arm(artifact)}`",
         f"- flows: {flows}",
         "",
         f"### Verdict: **{word}** — {reason}",
@@ -179,8 +253,8 @@ def render_markdown(artifacts: dict[str, dict[str, Any]]) -> str:
     lines = ["# Constellate benchmark report", ""]
     if len(artifacts) > 1:
         lines += [
-            "| run | platform | graph | sha | hybrid R@10 | delta vs vector | verdict |",
-            "|---|---|---|---|---|---|---|",
+            "| run | platform | graph | arm | sha | hybrid R@10 | delta vs vector | verdict |",
+            "|---|---|---|---|---|---|---|---|",
         ]
         for name, artifact in artifacts.items():
             word, _ = verdict(artifact)
@@ -188,10 +262,12 @@ def render_markdown(artifacts: dict[str, dict[str, Any]]) -> str:
             delta = artifact["quality"]["ablation_delta_hybrid_vs_vector"]["R@10"]
             lines.append(
                 f"| {name} | {artifact['platform']} | {_graph_adapter(artifact)} "
-                f"| {artifact['git_sha']} | {hybrid:.4f} | {delta:+.4f} | {word} |"
+                f"| {_arm(artifact)} | {artifact['git_sha']} | {hybrid:.4f} "
+                f"| {delta:+.4f} | {word} |"
             )
         lines.append("")
     lines += equivalence(artifacts)
+    lines += embedding_ablation(artifacts)
     for name, artifact in artifacts.items():
         lines += _run_section(artifact, name)
     return "\n".join(lines)

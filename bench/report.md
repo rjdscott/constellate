@@ -1,13 +1,13 @@
 # Constellate benchmark report
 
-| run | platform | graph | sha | hybrid R@10 | delta vs vector | verdict |
-|---|---|---|---|---|---|---|
-| hydra-0b36d7c-20260804T134236Z | hydra | memgraph | 0b36d7c | 0.0338 | +0.0138 | GO |
-| lyra-f7eb799-20260804T082917Z | lyra | - | f7eb799 | 0.0355 | +0.0141 | GO |
-| orion-8187751-20260804T101625Z | orion | cte | 8187751 | 0.0376 | +0.0267 | GO |
-| orion-e3526c7-20260804T110915Z | orion | age | e3526c7 | 0.0376 | +0.0267 | GO |
+| run | platform | graph | arm | sha | hybrid R@10 | delta vs vector | verdict |
+|---|---|---|---|---|---|---|---|
+| hydra-0b36d7c-20260804T134236Z | hydra | memgraph | svd | 0b36d7c | 0.0338 | +0.0138 | GO |
+| lyra-f7eb799-20260804T082917Z | lyra | - | svd | f7eb799 | 0.0355 | +0.0141 | GO |
+| orion-8187751-20260804T101625Z | orion | cte | svd | 8187751 | 0.0376 | +0.0267 | GO |
+| orion-e3526c7-20260804T110915Z | orion | age | svd | e3526c7 | 0.0376 | +0.0267 | GO |
 
-## Cross-platform quality equivalence (hybrid arm, vs Lyra)
+## Cross-platform quality equivalence (hybrid arm, vs Lyra) — svd
 
 | run | R@10 | nDCG@10 | tolerance | verdict |
 |---|---|---|---|---|
@@ -17,7 +17,7 @@
 
 ## hydra-0b36d7c-20260804T134236Z
 
-- platform `hydra` · sha `0b36d7c` · 2026-08-04T13:42:36+00:00 · config `3e16e0cd60325e98`
+- platform `hydra` · sha `0b36d7c` · 2026-08-04T13:42:36+00:00 · config `3e16e0cd60325e98` · arm `svd`
 - flows: F1 ok, F2 ok, F3 ok, F4 ok, F5 ok, F6 ok
 
 ### Verdict: **GO** — hybrid beats vector-only on Recall@10 by +0.0138 (p=0.003825)
@@ -56,7 +56,7 @@ Workload: hybrid similar(seed), k=10, probe seeds round-robin — warm mean 103.
 
 ## lyra-f7eb799-20260804T082917Z
 
-- platform `lyra` · sha `f7eb799` · 2026-08-04T08:29:17+00:00 · config `2575edad6710adae`
+- platform `lyra` · sha `f7eb799` · 2026-08-04T08:29:17+00:00 · config `2575edad6710adae` · arm `svd`
 - flows: F1 ok, F2 ok, F3 ok, F4 ok, F5 ok, F6 ok
 
 ### Verdict: **GO** — hybrid beats vector-only on Recall@10 by +0.0141 (p=0.005411)
@@ -95,7 +95,7 @@ Workload: hybrid similar(seed), k=10, probe seeds round-robin — warm mean 118.
 
 ## orion-8187751-20260804T101625Z
 
-- platform `orion` · sha `8187751` · 2026-08-04T10:16:25+00:00 · config `21fa5e19b24643dc`
+- platform `orion` · sha `8187751` · 2026-08-04T10:16:25+00:00 · config `21fa5e19b24643dc` · arm `svd`
 - flows: F1 ok, F2 ok, F3 ok, F4 ok, F5 ok, F6 ok
 
 ### Verdict: **GO** — hybrid beats vector-only on Recall@10 by +0.0267 (p=4.145e-06)
@@ -134,7 +134,7 @@ Workload: hybrid similar(seed), k=10, probe seeds round-robin — warm mean 38.1
 
 ## orion-e3526c7-20260804T110915Z
 
-- platform `orion` · sha `e3526c7` · 2026-08-04T11:09:15+00:00 · config `2a486f229ad267a7`
+- platform `orion` · sha `e3526c7` · 2026-08-04T11:09:15+00:00 · config `2a486f229ad267a7` · arm `svd`
 - flows: F1 ok, F2 ok, F3 ok, F4 ok, F5 ok, F6 ok
 
 ### Verdict: **GO** — hybrid beats vector-only on Recall@10 by +0.0267 (p=4.145e-06)

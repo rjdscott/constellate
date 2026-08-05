@@ -3,7 +3,7 @@
 import math
 
 from constellate.bench.metrics import coverage, evaluate, evaluate_by_kind, novelty, significance
-from constellate.bench.run import split_validation, tune_graph_weight
+from constellate.bench.run import genome_subset_qids, split_validation, tune_graph_weight
 
 QRELS = {
     "tag_bridge:1": {"10": 1, "11": 1},
@@ -94,3 +94,13 @@ def test_tune_graph_weight_ties_stay_at_baseline() -> None:
     same = _run_from_ranking({q: list(QRELS[q]) for q in QRELS})
     result = tune_graph_weight(QRELS, same, same, {"tag_bridge:1", "cold_start:3"}, rrf_k=60)
     assert result["best_graph_weight"] == 1.0
+
+
+def test_genome_subset_qids_requires_full_coverage() -> None:
+    qrels = {
+        "tag_bridge:1": {"10": 1, "11": 1},  # seed + all expected covered -> in
+        "tag_bridge:2": {"20": 1, "99": 1},  # expected item 99 not covered -> out
+        "cold_start:3": {"30": 1},  # seed 3 not covered -> out
+    }
+    covered = {1, 10, 11, 2, 20, 30}  # 3 and 99 deliberately absent
+    assert genome_subset_qids(qrels, covered) == {"tag_bridge:1"}
