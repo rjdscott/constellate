@@ -49,26 +49,33 @@ class QdrantVector:
         *,
         items_collection: str = "items",
         users_collection: str = "users",
-        dim: int,
+        dim: int | None = None,
     ) -> None:
+        # dim is the loader's concern (it creates/validates collections and
+        # derives dim from the parquet). Serving-time construction passes
+        # None: search/fetch never need it, and a config-sourced 256 would
+        # lie on the neural arm (embedding_dim is SVD-only, ADR 0006).
         self._client = client
         self._items = items_collection
         self._users = users_collection
         self._dim = dim
 
     async def ensure_collections(self) -> None:
+        dim = self._dim
+        if dim is None:
+            raise ConfigError("ensure_collections needs an explicit dim (loader-only path)")
         for name in (self._items, self._users):
             if await self._client.collection_exists(name):
-                self._check_config(name, await self._client.get_collection(name))
+                self._check_config(name, await self._client.get_collection(name), dim)
                 continue
             await self._client.create_collection(
                 name,
-                vectors_config=VectorParams(size=self._dim, distance=Distance.DOT),
+                vectors_config=VectorParams(size=dim, distance=Distance.DOT),
                 hnsw_config=HnswConfigDiff(m=M, ef_construct=EF_CONSTRUCTION),
                 optimizers_config=OptimizersConfigDiff(indexing_threshold=INDEXING_THRESHOLD),
             )
 
-    def _check_config(self, name: str, info: CollectionInfo) -> None:
+    def _check_config(self, name: str, info: CollectionInfo, dim: int) -> None:
         """A pre-existing collection must be the one we would have created.
 
         Silently reusing a leftover collection is the expensive kind of wrong:
@@ -78,7 +85,7 @@ class QdrantVector:
         """
         vectors = info.config.params.vectors
         expected = {
-            "size": self._dim,
+            "size": dim,
             "distance": Distance.DOT,
             "hnsw m": M,
             "hnsw ef_construct": EF_CONSTRUCTION,

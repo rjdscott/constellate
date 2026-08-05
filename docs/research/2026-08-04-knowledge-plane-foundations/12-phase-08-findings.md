@@ -22,17 +22,24 @@
    probe set deliberately contains none of) — but now it's measured, not
    cited.
 2. **The knowledge-plane thesis survives the arm swap.** Hybrid beats
-   vector-only on *both* arms, every platform: svd p = 0.0038–5.4e-3
-   (platform-dependent), neural p = 3.8e-4 everywhere. The graph plane's
+   vector-only on *both* arms, every platform: svd p = 4.1e-6 (orion),
+   3.8e-3 (hydra), 5.4e-3 (lyra); neural p = 3.8e-4 everywhere. (Orion's
+   svd p is *smaller* because its halfvec-weakened vector arm makes the
+   hybrid's win larger and more consistent per probe.) The graph plane's
    relative contribution is *larger* on the weaker neural arm (+0.0176 vs
    +0.0141 R@10 on lyra). A worse vector arm makes the graph matter more.
-3. **The neural arm is bit-stable across every engine stack.** All three
-   platforms return *identical* neural-arm quality to four decimals —
-   vector-only 0.0145, hybrid 0.0321, same by-kind splits, same p-value —
-   across faiss exact (lyra), pgvector halfvec HNSW (orion), and qdrant
-   HNSW (hydra). The graph arm stays 0.0965 on all engines and both arms,
-   as it must (embeddings never touch it) — a built-in no-contamination
-   check the arm switch passed.
+3. **The neural arm is rank-stable at the reported depth across every
+   engine stack.** All three platforms return *identical* neural-arm
+   R@10 and nDCG@10 — overall and by kind — plus the same p-value:
+   vector-only 0.0145, hybrid 0.0321, across faiss exact (lyra),
+   pgvector halfvec HNSW (orion), and qdrant HNSW (hydra). Scope stated
+   precisely: deeper metrics do differ by engine in the third decimal
+   (e.g. hybrid cross_genre R@50 0.6729 lyra vs 0.6754 orion; novelty
+   16.32–16.34) — top-10 rankings agree, the depth-50 tail does not,
+   which is exactly where ANN and fp16 effects should live. The graph
+   arm stays 0.0965 on all engines and both arms, as it must
+   (embeddings never touch it) — a built-in no-contamination check the
+   arm switch passed.
 
 ## The sleeper finding: 384d bge is quantization- and ANN-robust; 256d SVD is not
 
@@ -73,8 +80,10 @@ built to *need* the graph, and the graph duly dominates them
 lyra 116.9 → 117.0 ms, orion 37.5 → 36.7 ms, hydra 100.8 → 111.6 ms
 (the only visible dent, ~+10% on the composed platform's extra hop);
 c=8 p50/p99 unchanged within noise on all three (e.g. orion 43.1/87.9
-→ 42.9/88.8 ms). Neural ingest: ~2 min for 62,423 items on 28 CPU
-cores, well inside ADR 0006's estimate. Storage: 1.5× vector bytes
+→ 42.9/88.8 ms). Neural ingest: roughly two minutes wall-clock for
+62,423 items on 28 CPU cores — operator-observed; the seed step isn't
+instrumented, so unlike every other number here this one has no
+artifact behind it. Inside ADR 0006's estimate. Storage: 1.5× vector bytes
 (384/256), invisible next to the 25M-row interactions table.
 
 ## Coverage stratification: the machinery worked, the asymmetry didn't bite

@@ -92,3 +92,11 @@ def test_build_text_corpus_ordered_by_item_id(tmp_path: Path) -> None:
 )
 def test_vector_files(arm: str, expected: tuple[str, str]) -> None:
     assert vector_files(arm) == expected
+
+
+def test_parquet_vector_dim_probes_row_zero(tmp_path: Path) -> None:
+    from constellate.load import parquet_vector_dim
+
+    path = tmp_path / "item_vectors.parquet"
+    pd.DataFrame({"item_id": [1, 2], "vector": [[0.1] * 384, [0.2] * 384]}).to_parquet(path)
+    assert parquet_vector_dim(path) == 384

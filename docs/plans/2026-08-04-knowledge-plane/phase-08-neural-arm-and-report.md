@@ -23,9 +23,21 @@ after this does Eridanus design begin (out of scope here).
 ## Verification
 
 ```
-make seed ARM=neural            # embeds 62k items, cached
-make bench-all && make report   # matrix complete, ablation + arm deltas rendered
+uv sync --extra neural
+make seed ARM=neural                  # embeds 62k items, cached to *_neural.parquet
+# per platform p in {lyra, orion, hydra}: bench svd, flip arm, reload, bench neural, restore
+make bench PLATFORM=$p                # svd (configs default to svd)
+#   add "embedding_arm: neural" under data: in config/$p.yaml
+make load PLATFORM=$p                 # dim-change rebuild fires (256 -> 384)
+make bench PLATFORM=$p                # neural artifact
+#   remove the embedding_arm line, then: make load PLATFORM=$p  (restore svd)
+make report                           # ablation + per-arm equivalence rendered
 ```
+
+(As run 2026-08-05 the loop was scripted; there is deliberately no
+`bench-matrix` Make target — the config flip is the experiment's control
+and stays visible. Amended 2026-08-05: original text referenced a
+`bench-all` target that never existed.)
 
 ## Artifacts
 
@@ -84,3 +96,22 @@ Neural vectors parquet (hash in MANIFEST), full `bench/results/` matrix
   snapshot refreshed (10 artifacts). Lessons L14, L15; narrative entry;
   explainer doc `11-explainer-embedding-ablation.md` added mid-phase at
   Rob's request. Next: adversarial review (Sonnet), then gate.
+- 2026-08-05 — Adversarial review (Sonnet worker, Fable-verified): two
+  majors, both in reporting machinery, both fixed same-day. (1) Report's
+  newest-artifact selection sorted by filename — sha sits before the
+  timestamp, so a lexicographically-smaller newer sha would silently
+  serve a stale equivalence baseline and ablation table; fixed by
+  ordering on the artifact's own `utc` (`chronological()`, + the
+  adversarial-filename test). Fourth consecutive phase where review's
+  top find was proof machinery that could fail silently. (2) Findings
+  overstated: svd p-range omitted orion's 4.1e-6, and "bit-identical
+  across engines" held only at depth 10 (R@50/novelty differ in the
+  third decimal) — both corrected to exactly what the artifacts show.
+  Minors: serve-time QdrantVector no longer takes a config dim (loader
+  passes the parquet-derived one; ensure_collections refuses without),
+  `parquet_vector_dim` gained its missing test, plan verification block
+  rewritten (referenced a `bench-all` target that never existed),
+  ingest-timing claim in findings flagged as operator-observed. Noted,
+  no action: ADR 0006 mentions a 256d-truncated Qwen3 third arm; the
+  shipped (unimplemented) stub documents native dim instead — if that
+  arm is ever built, supersede or annotate then. 118 tests green.
