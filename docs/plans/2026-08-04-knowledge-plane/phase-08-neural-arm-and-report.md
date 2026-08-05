@@ -13,9 +13,9 @@ after this does Eridanus design begin (out of scope here).
 
 ## Tasks
 
-- [ ] `ingest/embeddings.py`: `--arm neural` path (fastembed ONNX, batched, cached to parquet, seeded ordering)
-- [ ] Optional third arm stub: Qwen3-Embedding-0.6B @256d behind a flag (documented, not required)
-- [ ] Eval stratification: genome-subset restriction + coverage reporting wired into report
+- [x] `ingest/embeddings.py`: `--arm neural` path (fastembed ONNX, batched, cached to parquet, seeded ordering)
+- [x] Optional third arm stub: Qwen3-Embedding-0.6B behind `--model` flag (documented, not required; native dim per model, not forced to 256)
+- [x] Eval stratification: genome-subset restriction + coverage reporting wired into report
 - [ ] Full matrix: {lyra, orion, hydra} × {svd, neural} × {all-planes, vector-only} on the probe set
 - [ ] `docs/research/2026-08-04-knowledge-plane-foundations/07-findings.md` — the results document, every claim traceable to a committed results JSON
 - [ ] Migration-narrative closing entry; plan status table finalized
@@ -46,3 +46,14 @@ Neural vectors parquet (hash in MANIFEST), full `bench/results/` matrix
   switch). fastembed lands behind an optional `neural` extra. Known ripple:
   adding the config field shifts every config fingerprint; committed
   artifacts are snapshots and keep their old fingerprints.
+- 2026-08-05 — PR A (#19) merged: neural ingest + arm-aware loaders.
+  `make seed ARM=neural` embedded 62,423 items @ 384d + 156,604 users in
+  ~2 min on CPU (well inside ADR 0006's 2–5 min estimate). Lyra dim-switch
+  rebuild verified end to end; first qualitative signal visible in a Matrix
+  smoke query: neural vector arm surfaces text-semantic neighbors (Matrix
+  sequels) where SVD surfaces behavioral ones. PR B: bench artifact gains
+  `embedding_arm`, quality section gains `genome_subset` (probes whose seed
+  + all expected items are genome-covered — the fair svd-vs-neural slice)
+  and `embedding_coverage`; report partitions equivalence by arm and renders
+  an svd-vs-neural ablation section once both arms have artifacts. Existing
+  svd-only report output verified byte-stable apart from the new arm column.
