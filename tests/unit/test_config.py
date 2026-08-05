@@ -20,6 +20,14 @@ def test_fingerprint_is_stable_and_sensitive() -> None:
     assert a.fingerprint() != b.fingerprint()
 
 
+def test_embedding_arm_defaults_svd_and_changes_fingerprint() -> None:
+    a, b = load_config("lyra"), load_config("lyra")
+    assert a.data.embedding_arm == "svd"
+    assert a.fingerprint() == b.fingerprint()
+    b.data.embedding_arm = "neural"
+    assert a.fingerprint() != b.fingerprint()
+
+
 def test_unknown_platform_raises(tmp_path: Path) -> None:
     with pytest.raises(ConfigError):
         load_config("vega", config_dir=tmp_path)

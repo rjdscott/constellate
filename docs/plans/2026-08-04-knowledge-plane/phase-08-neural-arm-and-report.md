@@ -33,3 +33,16 @@ Neural vectors parquet (hash in MANIFEST), full `bench/results/` matrix
 (committed), `07-findings.md`.
 
 ## Progress log
+
+- 2026-08-05 — Phase opened on `feat/neural-arm`. Scope amendment approved
+  same day: context-plane LLM comparison (local vs Anthropic API) added as
+  [phase 09](phase-09-context-plane-llm.md), executing after this phase.
+  Design settled before implementation: `data.embedding_arm: svd|neural`
+  config axis (svd default keeps CI ML-free per ADR 0006), neural vectors in
+  separate parquets (`item_vectors_neural.parquet`, `user_vectors_neural.parquet`,
+  bge-small native 384d vs SVD 256d), loaders resolve source parquet by arm
+  and must rebuild engine-side vector stores on dim mismatch (row counts are
+  identical across arms, so count-based skip checks cannot detect an arm
+  switch). fastembed lands behind an optional `neural` extra. Known ripple:
+  adding the config field shifts every config fingerprint; committed
+  artifacts are snapshots and keep their old fingerprints.

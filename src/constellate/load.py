@@ -26,15 +26,15 @@ import pandas as pd
 import pyarrow.parquet as pq
 
 from constellate.config import load_config
-from constellate.ingest import CANONICAL_DIR, DATA_DIR
+from constellate.ingest import CANONICAL_DIR, DATA_DIR, vector_files
 
 GRAPH_EDGE_TYPES = ("HAS_GENRE", "HAS_TAG", "CO_RATED")
 
 
-def _save_vectors(canonical: Path, out: Path) -> None:
-    for name, id_col in (("item_vectors", "item_id"), ("user_vectors", "user_id")):
-        df = pd.read_parquet(canonical / f"{name}.parquet")
-        prefix = name.split("_")[0]
+def _save_vectors(canonical: Path, out: Path, arm: str) -> None:
+    for file, id_col in zip(vector_files(arm), ("item_id", "user_id"), strict=True):
+        df = pd.read_parquet(canonical / file)
+        prefix = id_col.split("_")[0]
         np.save(out / f"{prefix}_ids.npy", df[id_col].to_numpy(dtype="int64"))
         np.save(out / f"{prefix}_vecs.npy", np.stack(df["vector"].to_list()).astype("float32"))
 
@@ -47,6 +47,14 @@ def _build_hnsw(out: Path, seed: int) -> None:
     index = HnswVector(dim=vecs.shape[1], max_elements=len(ids) + 1000, seed=seed)
     index.load_item_vectors(ids, vecs)
     index.save_index(out / "hnsw.bin")
+
+
+def parquet_vector_dim(path: Path) -> int:
+    """Vector length of row 0, without materialising the whole column — used
+    by orion/hydra loaders to detect an embedding-arm dim change (ADR 0006)."""
+    batch = next(pq.ParquetFile(path).iter_batches(batch_size=1, columns=["vector"]))
+    vec = batch.column("vector")[0].as_py()
+    return len(vec)
 
 
 def doubled_edges(canonical: Path) -> pd.DataFrame:
@@ -98,14 +106,24 @@ def load_lyra(canonical: Path = CANONICAL_DIR, out: Path | None = None) -> None:
     if not (canonical / "MANIFEST.json").is_file():
         sys.exit("load: no canonical data — run `make seed` first")
 
-    if all(
-        (out / f).is_file()
-        for f in ("item_ids.npy", "item_vecs.npy", "user_ids.npy", "user_vecs.npy")
-    ):
+    # dim probe, not just existence: switching embedding_arm changes vector
+    # dim (256 svd / 384 neural) but not row counts, so a stale store would
+    # pass every count check and crash faiss at query time
+    want_dim = parquet_vector_dim(canonical / vector_files(cfg.data.embedding_arm)[0])
+    vecs_path = out / "item_vecs.npy"
+    files = ("item_ids.npy", "item_vecs.npy", "user_ids.npy", "user_vecs.npy")
+    fresh = all((out / f).is_file() for f in files) and (
+        int(np.load(vecs_path, mmap_mode="r").shape[1]) == want_dim
+    )
+    if fresh:
         print("load: vectors up to date")
     else:
-        print("load: building vector npy store")
-        _save_vectors(canonical, out)
+        if vecs_path.is_file():
+            print(f"load: vector dim changed, rebuilding npy store + hnsw ({want_dim}d)")
+            (out / "hnsw.bin").unlink(missing_ok=True)
+        else:
+            print("load: building vector npy store")
+        _save_vectors(canonical, out, cfg.data.embedding_arm)
     if (out / "hnsw.bin").is_file():
         print("load: hnsw index up to date")
     else:

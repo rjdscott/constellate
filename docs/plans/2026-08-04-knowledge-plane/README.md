@@ -30,7 +30,8 @@
 | 05 | [Orion (unified)](phase-05-orion.md) | 🟢 Completed | 2026-08-04 |
 | 06 | [Hydra (composed)](phase-06-hydra.md) | 🟢 Completed | 2026-08-04 |
 | 07 | [Explorer UI + MCP](phase-07-explorer-and-mcp.md) | 🟢 Completed | 2026-08-05 |
-| 08 | [Neural arm + final report](phase-08-neural-arm-and-report.md) | 🔵 Not started | 2026-08-04 |
+| 08 | [Neural arm + final report](phase-08-neural-arm-and-report.md) | 🟡 In progress | 2026-08-05 |
+| 09 | [Context plane: LLM consumers, local vs API](phase-09-context-plane-llm.md) | 🔵 Not started | 2026-08-05 |
 
 ## Parked experiments (triggered, not scheduled)
 

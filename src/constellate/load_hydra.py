@@ -31,8 +31,9 @@ from neo4j import AsyncGraphDatabase, AsyncSession
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import CollectionStatus, PointStruct
 
-from constellate.ingest import CANONICAL_DIR, DATA_DIR
-from constellate.load import doubled_edges
+from constellate.config import load_config
+from constellate.ingest import CANONICAL_DIR, DATA_DIR, vector_files
+from constellate.load import doubled_edges, parquet_vector_dim
 
 # manifest convention is shared with orion, not orion-specific — same table,
 # same atomic step+mark contract (ADR 0004 / phase-05 review finding)
@@ -145,8 +146,29 @@ async def _load_interactions(conn: asyncpg.Connection, canonical: Path) -> int:
     return total
 
 
-async def _load_vectors(conn: asyncpg.Connection, canonical: Path, name: str, id_col: str) -> int:
-    df = pd.read_parquet(canonical / f"{name}.parquet", columns=[id_col, "vector"])
+async def _rebuild_if_dim_changed(
+    conn: asyncpg.Connection, canonical: Path, file: str, name: str
+) -> None:
+    """`real[]` has no declared dim, so a switched embedding arm leaves the
+    load_manifest step marked done and the loader silently skips it — the
+    stale-dim rows would ride straight through to the qdrant projection.
+    Probe one row's array_length against the incoming parquet's and
+    truncate + reset on mismatch."""
+    old_dim = await conn.fetchval(f"SELECT array_length(vec, 1) FROM {name} LIMIT 1")
+    if old_dim is None:
+        return
+    new_dim = parquet_vector_dim(canonical / file)
+    if old_dim == new_dim:
+        return
+    print(f"load: vector dim changed {old_dim} -> {new_dim}, rebuilding {name}")
+    await conn.execute(f"TRUNCATE {name}")
+    await conn.execute("DELETE FROM load_manifest WHERE step = $1", name)
+
+
+async def _load_vectors(
+    conn: asyncpg.Connection, canonical: Path, file: str, name: str, id_col: str
+) -> int:
+    df = pd.read_parquet(canonical / file, columns=[id_col, "vector"])
     ids = df[id_col].to_list()
     vecs = df["vector"].to_list()
     for start in range(0, len(ids), VECTOR_CHUNK):
@@ -347,15 +369,24 @@ async def rebuild_hydra(dsn: str = HYDRA_DSN) -> None:
 async def load_hydra(canonical: Path = CANONICAL_DIR, dsn: str = HYDRA_DSN) -> None:
     if not (canonical / "MANIFEST.json").is_file():
         raise SystemExit("load: no canonical data — run `make seed` first")
+    item_file, user_file = vector_files(load_config("hydra").data.embedding_arm)
     conn = await _connect(dsn)
     try:
         await conn.execute(SCHEMA)
+        await _rebuild_if_dim_changed(conn, canonical, item_file, "item_vectors")
+        await _rebuild_if_dim_changed(conn, canonical, user_file, "user_vectors")
         steps: list[tuple[str, Callable[[asyncpg.Connection], Awaitable[int]]]] = [
             ("items", lambda c: _load_items(c, canonical)),
             ("users", lambda c: _load_users(c, canonical)),
             ("interactions", lambda c: _load_interactions(c, canonical)),
-            ("item_vectors", lambda c: _load_vectors(c, canonical, "item_vectors", "item_id")),
-            ("user_vectors", lambda c: _load_vectors(c, canonical, "user_vectors", "user_id")),
+            (
+                "item_vectors",
+                lambda c: _load_vectors(c, canonical, item_file, "item_vectors", "item_id"),
+            ),
+            (
+                "user_vectors",
+                lambda c: _load_vectors(c, canonical, user_file, "user_vectors", "user_id"),
+            ),
             ("graph_edges", lambda c: _load_edges(c, canonical)),
         ]
         for step, fn in steps:

@@ -34,9 +34,12 @@ from constellate.service import Service
 AGE_GRAPH = "constellate"  # AGE graph name make load PLATFORM=orion creates
 
 
-def _lyra_vector(lyra_dir: Path, adapter: str, dim: int, seed: int) -> VectorPlane:
+def _lyra_vector(lyra_dir: Path, adapter: str, seed: int) -> VectorPlane:
     ids = np.load(lyra_dir / "item_ids.npy")
     vecs = np.load(lyra_dir / "item_vecs.npy", mmap_mode="r")
+    # dim comes from the store, not config: embedding_dim is SVD-only (the
+    # neural arm ships the model's native dim, ADR 0006)
+    dim = int(vecs.shape[1])
     plane: FlatVector | HnswVector
     if adapter == "flat":
         plane = FlatVector(dim=dim)
@@ -61,7 +64,7 @@ def _build_lyra(cfg: PlatformConfig) -> Service:
     engines = cfg.engines.get("vector", {})
     adapter = str(engines.get("adapter", "flat"))
     relational = DuckDBRelational.from_canonical(CANONICAL_DIR)
-    vector = _lyra_vector(lyra_dir, adapter, cfg.data.embedding_dim, cfg.data.random_seed)
+    vector = _lyra_vector(lyra_dir, adapter, cfg.data.random_seed)
     graph = KuzuGraph(kuzu.Database(str(lyra_dir / "kuzu"), read_only=True), init_schema=False)
     pipeline = Pipeline(relational, vector, graph, cfg)
     return Service(pipeline, relational, vector, graph, cfg)
