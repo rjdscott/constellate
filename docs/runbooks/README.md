@@ -31,3 +31,4 @@ exactly what to type and what they should see.
 | [run-orion](run-orion.md) | Bring up Orion: container, load, conformance, CTE↔AGE switch, bench |
 | [run-hydra](run-hydra.md) | Bring up Hydra: postgres+qdrant+memgraph, load, rebuild proof, health checks |
 | [run-explorer](run-explorer.md) | Explorer SPA + API: dev loop, production serve, static snapshot, MCP selftest |
+| [run-context-demo](run-context-demo.md) | Context-plane demo: LLM drivers (API + local Ollama) over MCP, suite + artifact |

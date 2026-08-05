@@ -24,6 +24,7 @@
 | `10-hydra-benchmark-findings.md` | phase-06 results: four-engine ranking equivalence (+ committed parity test), real-HNSW vs halfvec recall, the graph-leg latency cost of composition, CDC-shape rebuild proof, determinism boundary, config record |
 | `11-explainer-embedding-ablation.md` | newcomer explainer: what embeddings are, SVD vs neural arms, what a matrix bench run does and why it's slow — workshop teaching material |
 | `12-phase-08-findings.md` | phase-08 results: svd beats neural on graph-flavored probes, hybrid beats both on every arm/platform, neural arm bit-stable across all engine stacks (the quantization-robustness sleeper), coverage-stratification honesty, config record |
+| `13-context-plane-llm.md` | phase-09 results: local (qwen3:8b) vs API (Haiku 4.5) driving the MCP tools — fidelity 0.88 vs 1.00, the chaining-confabulation failure, latency/cost from laptop to platform scale |
 
 ## Naming map (ADR 0009, decided after these docs were written)
 
