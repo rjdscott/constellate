@@ -2,7 +2,7 @@
   "dataset": "ml-25m",
   "random_seed": 42,
   "split_cutoff_quantile": 0.95,
-  "config_fingerprint": "b49bb7421c2de02a",
+  "config_fingerprint": "8ca079def5c580df",
   "files": {
     "edges.parquet": {
       "sha256": "c28d2da627fcc38b2eb2342493e535babacad2efcdf0b7d6801899e041313a2b",
@@ -16,6 +16,10 @@
       "sha256": "b17f9b4cae97f47c0e9fc691ddeec734ebe0909b5d4d9ab283e3239ce4368454",
       "rows": 62423
     },
+    "item_vectors_neural.parquet": {
+      "sha256": "80e32d0326ad84935799137b8d82e7973320b443cef212160e4119562f2393ae",
+      "rows": 62423
+    },
     "items.parquet": {
       "sha256": "42961ce23ee64301474de9a36ee2ab8735dcce27a316e136d722c90c33e4e58d",
       "rows": 62423
@@ -26,6 +30,10 @@
     },
     "user_vectors.parquet": {
       "sha256": "0bfe00a3f095fd874387ca2ec900fe62e4569645b76e6e2f283cd6e03ca6b1f6",
+      "rows": 156604
+    },
+    "user_vectors_neural.parquet": {
+      "sha256": "484d86604ec08ed3db9a481316b399d51b4224c79140c7a3e6107e5aca86206c",
       "rows": 156604
     },
     "users.parquet": {

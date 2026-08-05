@@ -1,10 +1,19 @@
-"""Genome-SVD item vectors + rating-weighted user vectors (ADR 0006).
+"""Two embedding arms, compared as a first-class ablation (ADR 0006).
 
-Items with tag-genome rows get TruncatedSVD(dim) of the item-by-tag relevance
-matrix. Long-tail items (no genome) fall back to the mean of their genres'
-mean vectors — weaker on purpose, and flagged via `has_genome` so the effect
-is measurable. User vectors are the mean-centred, rating-weighted mean of
-train item vectors. Everything L2-normalized, float32, seeded.
+svd (deterministic default): items with tag-genome rows get TruncatedSVD(dim)
+of the item-by-tag relevance matrix. Long-tail items (no genome) fall back to
+the mean of their genres' mean vectors — weaker on purpose, and flagged via
+`has_genome` so the effect is measurable.
+
+neural: bge-small-en-v1.5 via fastembed (ONNX, CPU) over a text corpus built
+from title + genres + top genome tags, covering all items (not just the
+~13.8k with genome rows). fastembed is imported lazily — it is an optional
+`neural` extra, not a core dependency, so CI stays ML-free. Documented
+alternative per ADR 0006: Qwen3-Embedding-0.6B, via `--model` on the seed CLI.
+
+User vectors (either arm) are the mean-centred, rating-weighted mean of train
+item vectors. Everything L2-normalized, float32, seeded where randomness
+applies.
 """
 
 from pathlib import Path
@@ -16,6 +25,7 @@ from scipy.sparse import csr_matrix
 from sklearn.decomposition import TruncatedSVD
 
 from constellate.config import DataConfig
+from constellate.ingest import vector_files
 from constellate.ingest.canonical import _write
 
 FloatArray = npt.NDArray[np.float32]
@@ -67,12 +77,76 @@ def build_item_vectors(raw: Path, out: Path, cfg: DataConfig) -> None:
 
     _write(
         pd.DataFrame({"item_id": items["item_id"], "vector": list(vecs), "has_genome": has_genome}),
-        out / "item_vectors.parquet",
+        out / vector_files("svd")[0],
     )
 
 
-def build_user_vectors(out: Path) -> None:
-    iv = pd.read_parquet(out / "item_vectors.parquet")
+def build_text_corpus(raw: Path, out: Path, top_tags: int = 15) -> pd.DataFrame:
+    """Per-item text for the neural arm — pure and testable, no model.
+
+    "{title}. Genres: {genres comma-joined}. Tags: {top-N genome tags
+    comma-joined}", omitting an empty Genres or Tags segment entirely. Tags
+    are the top `top_tags` genome-scores rows per item by relevance, ties
+    broken by tagId for determinism. Returns item_id, text, has_genome
+    (whether the item has any genome rows at all — independent of the top-N
+    cut), ordered by item_id.
+    """
+    items = pd.read_parquet(out / "items.parquet").sort_values("item_id", ignore_index=True)
+
+    tag_names = pd.read_csv(raw / "genome-tags.csv", dtype={"tagId": "int32", "tag": "string"})
+    scores = pd.read_csv(
+        raw / "genome-scores.csv",
+        dtype={"movieId": "int32", "tagId": "int32", "relevance": "float32"},
+    ).merge(tag_names, on="tagId", how="left")
+    scores = scores.sort_values(
+        ["movieId", "relevance", "tagId"], ascending=[True, False, True], ignore_index=True
+    )
+    top_tags_by_item = (
+        scores.groupby("movieId", sort=False).head(top_tags).groupby("movieId")["tag"].apply(list)
+    )
+    genome_items = set(scores["movieId"].unique())
+
+    def _text(item_id: int, title: str, genres: list[str]) -> str:
+        segments = [f"{title}."]
+        if len(genres):  # genres round-trips from parquet as a numpy array, not a list
+            segments.append(f"Genres: {', '.join(genres)}.")
+        item_tags = top_tags_by_item.get(item_id, [])
+        if item_tags:
+            segments.append(f"Tags: {', '.join(item_tags)}.")
+        return " ".join(segments)
+
+    text = [
+        _text(item_id, title, genres)
+        for item_id, title, genres in zip(
+            items["item_id"], items["title"], items["genres"], strict=True
+        )
+    ]
+    has_genome = items["item_id"].isin(genome_items).to_numpy()
+    return pd.DataFrame({"item_id": items["item_id"], "text": text, "has_genome": has_genome})
+
+
+def build_item_vectors_neural(
+    raw: Path, out: Path, cfg: DataConfig, model: str = "BAAI/bge-small-en-v1.5"
+) -> None:
+    """Text-embed the corpus with fastembed — native model dim (384 for
+    bge-small), not truncated to cfg.embedding_dim: that field is the SVD
+    arm's dimension, the neural arm's dim is the model's."""
+    from fastembed import TextEmbedding  # lazy: optional `neural` extra, no CI dep
+
+    corpus = build_text_corpus(raw, out, top_tags=15)
+    embedder = TextEmbedding(model_name=model)
+    vecs = _l2(np.array(list(embedder.embed(corpus["text"].to_list(), batch_size=256)), "float32"))
+    _write(
+        pd.DataFrame(
+            {"item_id": corpus["item_id"], "vector": list(vecs), "has_genome": corpus["has_genome"]}
+        ),
+        out / vector_files("neural")[0],
+    )
+
+
+def build_user_vectors(out: Path, arm: str = "svd") -> None:
+    item_file, user_file = vector_files(arm)
+    iv = pd.read_parquet(out / item_file)
     item_ids = iv["item_id"].to_numpy()
     vecs = np.stack(iv["vector"].to_list()).astype("float32")
 
@@ -97,5 +171,5 @@ def build_user_vectors(out: Path) -> None:
     user_vecs = _l2(np.asarray(w @ vecs, dtype="float32"))
     _write(
         pd.DataFrame({"user_id": u_ids.astype("int32"), "vector": list(user_vecs)}),
-        out / "user_vectors.parquet",
+        out / user_file,
     )

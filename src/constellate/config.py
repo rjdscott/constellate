@@ -30,6 +30,7 @@ class DataConfig(BaseModel):
     split_cutoff_quantile: float = 0.95
     embedding_dim: int = 256
     random_seed: int = 42
+    embedding_arm: Literal["svd", "neural"] = "svd"
 
 
 class PlatformConfig(BaseModel):

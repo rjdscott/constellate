@@ -3,7 +3,7 @@
 import pandas as pd
 import pyarrow.parquet as pq
 
-from constellate.ingest import CANONICAL_DIR
+from constellate.ingest import CANONICAL_DIR, vector_files
 
 
 def main() -> None:
@@ -14,7 +14,14 @@ def main() -> None:
     split = inter.to_pandas().groupby("split")["ts"].agg(["size", "max"])
     print(f"split: {split['size'].to_dict()} (last train ts {split.at['train', 'max']})")
 
-    iv = pd.read_parquet(CANONICAL_DIR / "item_vectors.parquet", columns=["has_genome"])
+    # stats.py is platform-agnostic (one canonical dir feeds every platform);
+    # report on whichever arm's files are on disk, svd preferred
+    item_file = next(
+        f
+        for f in (vector_files("svd")[0], vector_files("neural")[0])
+        if (CANONICAL_DIR / f).is_file()
+    )
+    iv = pd.read_parquet(CANONICAL_DIR / item_file, columns=["has_genome"])
     print(f"items with genome vectors: {int(iv['has_genome'].sum()):,} / {len(iv):,}")
 
     edges = pq.read_table(CANONICAL_DIR / "edges.parquet", columns=["edge_type"])

@@ -22,8 +22,9 @@ import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 
-from constellate.ingest import CANONICAL_DIR, DATA_DIR
-from constellate.load import doubled_edges
+from constellate.config import load_config
+from constellate.ingest import CANONICAL_DIR, DATA_DIR, vector_files
+from constellate.load import doubled_edges, parquet_vector_dim
 
 ORION_DSN = os.environ.get(
     "ORION_DSN", "postgresql://constellate:constellate@localhost:15432/constellate"
@@ -132,8 +133,31 @@ async def _load_interactions(conn: asyncpg.Connection, canonical: Path) -> int:
     return total
 
 
-async def _load_vectors(conn: asyncpg.Connection, canonical: Path, name: str, id_col: str) -> int:
-    df = pd.read_parquet(canonical / f"{name}.parquet", columns=[id_col, "vector"])
+async def _rebuild_if_dim_changed(
+    conn: asyncpg.Connection, canonical: Path, file: str, name: str
+) -> None:
+    """halfvec(dim) is baked into the table DDL; switching embedding arms
+    changes dim but not row counts, so `CREATE TABLE IF NOT EXISTS` plus the
+    load_manifest skip would silently keep serving stale vectors. Probe the
+    live dim against the incoming parquet's and drop + reset on mismatch."""
+    if await conn.fetchval("SELECT to_regclass($1)", name) is None:
+        return
+    old_dim = await conn.fetchval(f"SELECT vector_dims(vec) FROM {name} LIMIT 1")
+    if old_dim is None:
+        return
+    new_dim = parquet_vector_dim(canonical / file)
+    if old_dim == new_dim:
+        return
+    print(f"load: vector dim changed {old_dim} -> {new_dim}, rebuilding {name}")
+    await conn.execute(f"DROP TABLE {name} CASCADE")
+    steps = [name] if name == "user_vectors" else [name, "hnsw_index"]
+    await conn.execute("DELETE FROM load_manifest WHERE step = ANY($1::text[])", steps)
+
+
+async def _load_vectors(
+    conn: asyncpg.Connection, canonical: Path, file: str, name: str, id_col: str
+) -> int:
+    df = pd.read_parquet(canonical / file, columns=[id_col, "vector"])
     ids = df[id_col].to_numpy(dtype="int64")
     vecs = np.stack(df["vector"].to_list()).astype("float32")
     dim = vecs.shape[1]
@@ -221,6 +245,7 @@ async def _load_age(conn: asyncpg.Connection, canonical: Path) -> int:
 async def load_orion(canonical: Path = CANONICAL_DIR, dsn: str = ORION_DSN) -> None:
     if not (canonical / "MANIFEST.json").is_file():
         raise SystemExit("load: no canonical data — run `make seed` first")
+    item_file, user_file = vector_files(load_config("orion").data.embedding_arm)
     try:
         conn = await asyncpg.connect(dsn, timeout=5)
     except OSError as exc:  # includes ConnectionRefusedError
@@ -229,12 +254,20 @@ async def load_orion(canonical: Path = CANONICAL_DIR, dsn: str = ORION_DSN) -> N
         ) from exc
     try:
         await conn.execute(SCHEMA)
+        await _rebuild_if_dim_changed(conn, canonical, item_file, "item_vectors")
+        await _rebuild_if_dim_changed(conn, canonical, user_file, "user_vectors")
         steps: list[tuple[str, Callable[[asyncpg.Connection], Awaitable[int]]]] = [
             ("items", lambda c: _load_items(c, canonical)),
             ("users", lambda c: _load_users(c, canonical)),
             ("interactions", lambda c: _load_interactions(c, canonical)),
-            ("item_vectors", lambda c: _load_vectors(c, canonical, "item_vectors", "item_id")),
-            ("user_vectors", lambda c: _load_vectors(c, canonical, "user_vectors", "user_id")),
+            (
+                "item_vectors",
+                lambda c: _load_vectors(c, canonical, item_file, "item_vectors", "item_id"),
+            ),
+            (
+                "user_vectors",
+                lambda c: _load_vectors(c, canonical, user_file, "user_vectors", "user_id"),
+            ),
             ("graph_edges", lambda c: _load_edges(c, canonical)),
             ("hnsw_index", _build_hnsw),
             ("age_graph", lambda c: _load_age(c, canonical)),

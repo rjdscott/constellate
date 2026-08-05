@@ -1,4 +1,5 @@
 PLATFORM ?= lyra
+ARM ?= svd
 
 # host dirs each platform's compose file bind-mounts (see compose/*.yml) — only
 # these, or `make up` litters an unused one under every other platform
@@ -25,7 +26,7 @@ test:
 # --- lifecycle stubs: implemented phase by phase (docs/plans/2026-08-04-knowledge-plane/) ---
 
 seed:
-	uv run python -m constellate.ingest.seed
+	uv run python -m constellate.ingest.seed --arm $(ARM)
 
 load:
 	uv run python -m constellate.load $(PLATFORM)
