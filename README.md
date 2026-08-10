@@ -55,15 +55,60 @@ Names are canonical keys everywhere (`PLATFORM=lyra`, `config/lyra.yaml`);
 the architecture terms are their permanent epithets. No hierarchy implied —
 right tool for the job ([ADR 0009](docs/adr/0009-platform-codenames-constellations.md)).
 
-## Quickstart
+## What's inside
+
+- **One retrieval contract** (`src/constellate/core/`) — candidate
+  generation, fusion, policy gating, explainable ranking — with a platform
+  adapter per constellation and a conformance suite that pins the semantics.
+- **A benchmark harness** (`src/constellate/bench/`, `bench/`) — quality
+  (nDCG/recall via ir-measures), latency (HdrHistogram percentiles), and a
+  dual embedding arm (genome-SVD vs neural,
+  [ADR 0006](docs/adr/0006-dual-embedding-ablation-genome-svd-plus-bge.md));
+  committed run artifacts under `bench/results/`.
+- **A context plane** (`src/constellate/mcp_server.py`,
+  `src/constellate/context/`) — the same service layer exposed as MCP tools,
+  driven by either an API model (Haiku 4.5) or a local one (qwen3:8b via
+  Ollama), with deterministic tool-call-fidelity scoring
+  ([ADR 0012](docs/adr/0012-context-plane-dual-llm-drivers.md)).
+- **An explorer UI** (`ui/`) — React SPA: constellation graph, retrieval
+  playground, benchmark dashboards; builds statically from committed
+  artifacts (`make ui-snapshot`), no live API needed.
+- **A documentation pipeline** (`docs/`) — research → ADR → plan → audit,
+  gated in CI (`make doc-check`); 12 ADRs, 9 runbooks, every phase resumable
+  by a stranger.
+
+## Getting started
 
 ```bash
+git clone https://github.com/rjdscott/constellate.git && cd constellate
 uv sync
-make check                 # ruff + mypy --strict + pytest
-make up PLATFORM=lyra      # no-op: Lyra is in-process
+make check                 # ruff + mypy --strict + pytest + doc-check
 ```
 
-Full loop: [docs/runbooks/local-dev-loop.md](docs/runbooks/local-dev-loop.md).
+Full loop — data, engines, benchmark (Lyra needs no containers):
+
+```bash
+make seed                  # download ml-25m (sha256-pinned) + build canonical parquet
+make load PLATFORM=lyra    # project canonical → engine stores
+make bench-smoke PLATFORM=lyra
+make bench PLATFORM=lyra && make report
+```
+
+Orion/Hydra are the same loop with `make up PLATFORM=orion` first (docker
+compose; throwaway local credentials, nothing secret). Step-by-step:
+[local-dev-loop runbook](docs/runbooks/local-dev-loop.md).
+
+The only secret in the whole project is an Anthropic API key, and only for
+the context-plane demo's API driver:
+
+```bash
+cp .env.example .env       # then fill in ANTHROPIC_API_KEY
+uv sync --extra context
+uv run python -m constellate.context.suite --driver anthropic --reps 3
+```
+
+Local, keyless alternative via Ollama:
+[run-context-demo runbook](docs/runbooks/run-context-demo.md).
 
 ## Where everything lives
 
