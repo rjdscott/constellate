@@ -1,4 +1,4 @@
-# 0001 — Pin MovieLens ml-25m as the canonical dataset
+# 0001: Pin MovieLens ml-25m as the canonical dataset
 
 - **Status:** Accepted
 - **Date:** 2026-08-04
@@ -14,20 +14,20 @@ ml-32m (May 2024) for new research, which makes it the obvious default.
 
 ## Options considered
 
-### Option A — ml-32m (newest, GroupLens-recommended)
+### Option A: ml-32m (newest, GroupLens-recommended)
 32M ratings, 87,585 movies.
 - Pros: newest, officially recommended, +7M ratings.
-- Cons: **ships no tag genome** (verified against its README) — kills the
+- Cons: **ships no tag genome** (verified against its README): kills the
   SVD embedding path and the content-signal narrative; extra movies are
   long-tail obscura.
 
-### Option B — ml-25m
+### Option B: ml-25m
 25M ratings, ~62k movies, **tag genome: 15M relevance scores over 1,129 tags**.
 - Pros: genome is load-bearing for the deterministic embedding arm; stable,
   heavily cited benchmark.
 - Cons: 2019 vintage; fewer ratings.
 
-### Option C — Frankenstein (ml-32m ratings + ml-25m genome on movieId)
+### Option C: Frankenstein (ml-32m ratings + ml-25m genome on movieId)
 - Pros: most data.
 - Cons: data-provenance asterisk on every published result; not worth it.
 

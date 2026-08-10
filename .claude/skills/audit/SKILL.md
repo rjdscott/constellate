@@ -1,11 +1,11 @@
 ---
 name: audit
-description: Scaffold and run an audit in docs/audits/ following the repo's audit conventions (dated directory, executive summary, NN-topic finding docs, severity codes, todo.md punchlist, evidence-or-drop). Use when the user asks for an audit, review sweep, security review, data-coverage check, or "how healthy is X" across a whole surface — e.g. "audit the backend", "run cyber-02", "coverage audit the anchors", "adversarial review". Not for reviewing a single diff/PR (use /code-review) — audits cover a surface at a point in time and leave a remediation punchlist.
+description: Scaffold and run an audit in docs/audits/ following the repo's audit conventions (dated directory, executive summary, NN-topic finding docs, severity codes, todo.md punchlist, evidence-or-drop). Use when the user asks for an audit, review sweep, security review, data-coverage check, or "how healthy is X" across a whole surface: e.g. "audit the backend", "run cyber-02", "coverage audit the anchors", "adversarial review". Not for reviewing a single diff/PR (use /code-review): audits cover a surface at a point in time and leave a remediation punchlist.
 ---
 
-# audit — scaffold and run an audit
+# audit: scaffold and run an audit
 
-Conventions live in `docs/audits/README.md` — read it first.
+Conventions live in `docs/audits/README.md`; read it first.
 
 ## Workflow
 
@@ -19,16 +19,16 @@ Conventions live in `docs/audits/README.md` — read it first.
    descriptive slug for one-offs.
 3. **Dig, with evidence.** Every finding must carry: severity code
    (`<C|H|M|L>-NN`, unique within the audit), evidence (file:line, command
-   output, reproduction steps), impact, and a concrete fix. **Verify or drop**
-   — a finding you can't demonstrate does not ship. Adversarially re-check
+   output, reproduction steps), impact, and a concrete fix. **Verify or drop**:
+   a finding you can't demonstrate does not ship. Adversarially re-check
    Criticals and Highs before publishing.
 4. **Write the docs:**
-   - `00-executive-summary.md` — verdict first: one-paragraph judgement,
+   - `00-executive-summary.md`: verdict first: one-paragraph judgement,
      scope + commit + date + method, findings count by severity, top risks.
      Readable standalone by someone who opens nothing else.
-   - `NN-topic.md` — findings grouped by area, reading order. Cross-reference
+   - `NN-topic.md`: findings grouped by area, reading order. Cross-reference
      with HTML anchors (`<a id="c-01"></a>`) + relative links.
-   - `todo.md` — every finding as a checkbox with severity + priority
+   - `todo.md`: every finding as a checkbox with severity + priority
      (P0 ship-blocker / P1 before public beta / P2 before paid users /
      P3 nice-to-have) + effort tag. This is the implementation handle.
 5. **Register it** in the `docs/audits/README.md` index table.
@@ -45,7 +45,7 @@ Conventions live in `docs/audits/README.md` — read it first.
 - Audits are snapshots: record the audited commit; never silently edit
   findings after publication. Follow-up state lives in `todo.md` ticks and
   successor audits.
-- No praise sections, no padding — findings, evidence, punchlist.
+- No praise sections, no padding: findings, evidence, punchlist.
 - Severity discipline: Critical = exploitable/data-loss/prod-down now; High =
   user-visible defect or foot-gun; don't inflate.
 - Remediation PRs cite finding codes; cross-tick the punchlist against git

@@ -1,4 +1,4 @@
-# 0008 — MCP server: standalone FastMCP v3 with hand-written tools over a shared service layer
+# 0008: MCP server: standalone FastMCP v3 with hand-written tools over a shared service layer
 
 - **Status:** Accepted
 - **Date:** 2026-08-04
@@ -15,19 +15,19 @@ deprecated; stdio remains the recommended local transport for Claude Code.
 
 ## Options considered
 
-### Option A — auto-bridge the FastAPI app (`FastMCP.from_fastapi()` / fastapi-mcp)
+### Option A: auto-bridge the FastAPI app (`FastMCP.from_fastapi()` / fastapi-mcp)
 - Pros: near-zero code.
 - Cons: FastMCP's own docs say auto-converted servers underperform curated
   ones; fastapi-mcp is stale; tool descriptions come out REST-shaped, not
   agent-shaped.
 
-### Option B — official `mcp` SDK v2
+### Option B: official `mcp` SDK v2
 - Pros: officially backed, boring dependency.
 - Cons: more boilerplate than FastMCP v3 for the same three tools.
 
-### Option C — standalone FastMCP v3, hand-written tools, stdio
+### Option C: standalone FastMCP v3, hand-written tools, stdio
 - Pros: recommend/similar/explain live in one shared service layer; the
-  FastAPI routes and ~3 `@mcp.tool` functions both call it — no bridging
+  FastAPI routes and ~3 `@mcp.tool` functions both call it: no bridging
   machinery, and each tool gets an agent-oriented docstring; stdio works
   with Claude Code today; one argument flips to Streamable HTTP later.
 - Cons: community project (though de-facto standard); a second entrypoint to
@@ -37,7 +37,7 @@ deprecated; stdio remains the recommended local transport for Claude Code.
 
 **We will expose the retrieval operations via standalone FastMCP v3 with
 hand-written tools calling the same service layer as the REST routes, over
-stdio — because we own the code, so curated tools cost less than bridge
+stdio: because we own the code, so curated tools cost less than bridge
 machinery and produce better agent-facing descriptions.** Scope: local agent
 access; remote transport deferred until a remote client exists.
 
@@ -46,7 +46,7 @@ access; remote transport deferred until a remote client exists.
 - Easier: agent testing from Claude Code against every platform; tool docs
   written for agents, not OpenAPI.
 - Harder: service layer must stay the single home of business logic (routes
-  and tools both stay thin) — a discipline, enforced by review.
+  and tools both stay thin), a discipline, enforced by review.
 - **Revisit trigger:** an "official-only dependencies" policy, or FastMCP v3
   breaking-changes churn exceeding one adaptation per quarter.
 

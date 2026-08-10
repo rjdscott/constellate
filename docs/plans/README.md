@@ -18,11 +18,11 @@ Conventions for `docs/plans/`. A plan executes decisions already recorded in
   dependency, then risk. 3–8 phases typical.
 - Update status table, checkboxes, and progress logs as-you-go, not at the end.
 - Scope changes get written in (new phase file or amended goal); renumbering is
-  forbidden — new work gets new numbers.
+  forbidden; new work gets new numbers.
 - Bar for every update: a stranger must be able to resume from the README alone.
 
 ## Index
 
 | Plan | Goal | Status |
 |------|------|--------|
-| [2026-08-04-knowledge-plane](2026-08-04-knowledge-plane/README.md) | Three-platform knowledge plane experiment (Lyra/Orion/Hydra — the embedded/unified/composed knowledge planes): probe-set ablation proof, cross-platform equivalence, latency/footprint deltas, explorer UI, MCP | 🟢 All planned phases complete (01–09; dual-arm matrix, context-plane LLM comparison local-vs-API 0.88/1.00. Remaining: triggered parked experiments in the plan README + talk assembly from research docs) |
+| [2026-08-04-knowledge-plane](2026-08-04-knowledge-plane/README.md) | Three-platform knowledge plane experiment (Lyra/Orion/Hydra: the embedded/unified/composed knowledge planes): probe-set ablation proof, cross-platform equivalence, latency/footprint deltas, explorer UI, MCP | 🟢 All planned phases complete (01–09; dual-arm matrix, context-plane LLM comparison local-vs-API 0.88/1.00. Remaining: triggered parked experiments in the plan README + talk assembly from research docs) |

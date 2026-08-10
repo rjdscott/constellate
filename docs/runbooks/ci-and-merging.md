@@ -2,25 +2,25 @@
 
 ## When to use
 
-Understanding what CI enforces, and merging any PR — especially stacked ones.
+Understanding what CI enforces, and merging any PR, especially stacked ones.
 
 ## CI anatomy (`.github/workflows/check.yml`)
 
 Runs on every PR and on pushes to main. Design choices, each deliberate:
 
-- `permissions: contents: read` — least privilege; the workflow can't write
+- `permissions: contents: read`: least privilege; the workflow can't write
   to the repo even if a dependency is compromised.
-- `concurrency` + `cancel-in-progress` — a new push cancels the stale run.
-- `timeout-minutes: 10` — a hung job fails instead of billing an hour.
-- `uv sync --frozen` — installs exactly `uv.lock`; CI never resolves
+- `concurrency` + `cancel-in-progress`: a new push cancels the stale run.
+- `timeout-minutes: 10`: a hung job fails instead of billing an hour.
+- `uv sync --frozen`: installs exactly `uv.lock`; CI never resolves
   dependencies. Lockfile drift fails loudly.
-- Split steps (Lint / Format / Types / Tests) — a failure names itself in
+- Split steps (Lint / Format / Types / Tests): a failure names itself in
   the PR UI without opening logs.
-- `ruff --output-format=github` — lint errors annotate the diff inline.
+- `ruff --output-format=github`: lint errors annotate the diff inline.
 
 ## Merging
 
-1. CI green: `gh pr checks <n>` — every line `pass`.
+1. CI green: `gh pr checks <n>`: every line `pass`.
 2. Squash-merge only, delete branch:
 
    ```bash
@@ -62,5 +62,5 @@ Runs on every PR and on pushes to main. Design choices, each deliberate:
 
 ## Last verified
 
-2026-08-04 — PRs #1 and #3 merged this way; #2 is the stacked-PR casualty
+2026-08-04: PRs #1 and #3 merged this way; #2 is the stacked-PR casualty
 documented above.

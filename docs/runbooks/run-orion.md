@@ -2,8 +2,8 @@
 
 ## When to use
 
-Bringing up Orion — one Postgres 18 container serving all three planes
-(ADR 0004) — loading it from canonical data, verifying conformance, running
+Bringing up Orion, one Postgres 18 container serving all three planes
+(ADR 0004), loading it from canonical data, verifying conformance, running
 flows/API/bench against it, or switching its graph adapter (CTE ↔ AGE).
 
 ## Steps
@@ -46,7 +46,7 @@ flows/API/bench against it, or switching its graph adapter (CTE ↔ AGE).
    ```
 
 5. Switch graph adapter for the AGE arm: edit `config/orion.yaml`
-   `engines.graph.adapter: cte → age` (changes the config fingerprint —
+   `engines.graph.adapter: cte → age` (changes the config fingerprint:
    that's the point: it is a different measured system), rerun smoke/bench.
 
 6. Benchmark (see `run-benchmarks.md` for the harness itself):
@@ -61,25 +61,25 @@ flows/API/bench against it, or switching its graph adapter (CTE ↔ AGE).
 ## Failure modes
 
 - **`could not resize shared memory segment ... No space left on device`
-  during load** — pgvector's parallel HNSW build needs shm ≥
+  during load**: pgvector's parallel HNSW build needs shm ≥
   `maintenance_work_mem`; compose sets `shm_size: 4g` for this reason.
   Hit 2026-08-04 with `shm_size: 1g`.
-- **`File or path does not exist [/tmp/age//...]` during load** — AGE 1.7
+- **`File or path does not exist [/tmp/age//...]` during load**: AGE 1.7
   jails `load_labels_from_file`/`load_edges_from_file` paths under
   `/tmp/age/` on the **server**; the compose file bind-mounts
   `data/orion/age-import` to `/tmp/age/age-import`. A remote DSN needs the
   CSVs shipped to the server's `/tmp/age/` yourself. Hit 2026-08-04.
-- **`Invalid input parameter types for agtype_mul` from the AGE adapter** —
+- **`Invalid input parameter types for agtype_mul` from the AGE adapter**:
   the CSV bulk loader lands numeric properties as agtype *strings*; any
   multi-hop weight product must go through `toFloat()` (the adapter does;
   don't remove it). Hit 2026-08-04.
-- **`type "halfvec" does not exist`** — fresh volume without extensions;
+- **`type "halfvec" does not exist`**: fresh volume without extensions;
   `make load` creates them, and the conformance probe bootstraps them too.
   Seen after the compose project rename orphaned the old volume.
-- **Port 15432 taken** — set `ORION_DSN` and map another host port; the
+- **Port 15432 taken**: set `ORION_DSN` and map another host port; the
   scheme (default+10000) exists precisely so 5432-range clashes don't bite.
 - **Tables vanish on reload / `relation "item_vectors" does not exist`
-  right after `load: orion ready`** — `search_path` defaults to
+  right after `load: orion ready`**: `search_path` defaults to
   `"$user", public`, the role is `constellate`, and AGE's graph schema is
   *also* named `constellate` (created by the age_graph step). Any reload
   after that schema exists sends unqualified CREATEs into the graph
@@ -92,5 +92,5 @@ flows/API/bench against it, or switching its graph adapter (CTE ↔ AGE).
 
 ## Last verified
 
-2026-08-05 — phase 08, PG 18.1 / AGE 1.7.0 / pgvector 0.8.6, svd + neural
+2026-08-05: phase 08, PG 18.1 / AGE 1.7.0 / pgvector 0.8.6, svd + neural
 arm loads green, dim-change rebuild verified (256 → 384 → 256).

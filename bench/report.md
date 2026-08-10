@@ -13,14 +13,14 @@
 | hydra-fa9623e-20260805T035422Z | hydra | memgraph | svd | fa9623e | 0.0338 | +0.0138 | GO |
 | hydra-fa9623e-20260805T044906Z | hydra | memgraph | neural | fa9623e | 0.0321 | +0.0176 | GO |
 
-## Cross-platform quality equivalence (hybrid arm, vs Lyra) — neural
+## Cross-platform quality equivalence (hybrid arm, vs Lyra): neural
 
 | run | R@10 | nDCG@10 | tolerance | verdict |
 |---|---|---|---|---|
 | orion-fa9623e-20260805T030508Z | +0.0000 | +0.0000 | ±0.02 | within |
 | hydra-fa9623e-20260805T044906Z | +0.0000 | +0.0000 | ±0.02 | within |
 
-## Cross-platform quality equivalence (hybrid arm, vs Lyra) — svd
+## Cross-platform quality equivalence (hybrid arm, vs Lyra): svd
 
 | run | R@10 | nDCG@10 | tolerance | verdict |
 |---|---|---|---|---|
@@ -91,7 +91,7 @@ Genome subset (200 probes, fallback vectors excluded):
 - platform `lyra` · sha `f7eb799` · 2026-08-04T08:29:17+00:00 · config `2575edad6710adae` · arm `svd`
 - flows: F1 ok, F2 ok, F3 ok, F4 ok, F5 ok, F6 ok
 
-### Verdict: **GO** — hybrid beats vector-only on Recall@10 by +0.0141 (p=0.005411)
+### Verdict: **GO**: hybrid beats vector-only on Recall@10 by +0.0141 (p=0.005411)
 
 ### Quality (200 graph-necessary probes)
 
@@ -116,7 +116,7 @@ Best graph weight **2.0** on nDCG@10 (baseline 1.0). Held-out test half: baselin
 
 ### Latency (open-loop, coordinated-omission-safe)
 
-Workload: hybrid similar(seed), k=10, probe seeds round-robin — warm mean 118.04ms, est. capacity 8.5/s. **Indicative**: in-process, no network hop.
+Workload: hybrid similar(seed), k=10, probe seeds round-robin: warm mean 118.04ms, est. capacity 8.5/s. **Indicative**: in-process, no network hop.
 
 | rate/s | conc | samples | p50ms | p95ms | p99ms | max ms | errors |
 |---|---|---|---|---|---|---|---|
@@ -130,7 +130,7 @@ Workload: hybrid similar(seed), k=10, probe seeds round-robin — warm mean 118.
 - platform `orion` · sha `8187751` · 2026-08-04T10:16:25+00:00 · config `21fa5e19b24643dc` · arm `svd`
 - flows: F1 ok, F2 ok, F3 ok, F4 ok, F5 ok, F6 ok
 
-### Verdict: **GO** — hybrid beats vector-only on Recall@10 by +0.0267 (p=4.145e-06)
+### Verdict: **GO**: hybrid beats vector-only on Recall@10 by +0.0267 (p=4.145e-06)
 
 ### Quality (200 graph-necessary probes)
 
@@ -155,7 +155,7 @@ Best graph weight **2.0** on nDCG@10 (baseline 1.0). Held-out test half: baselin
 
 ### Latency (open-loop, coordinated-omission-safe)
 
-Workload: hybrid similar(seed), k=10, probe seeds round-robin — warm mean 38.11ms, est. capacity 26.2/s. **Indicative**: in-process, no network hop.
+Workload: hybrid similar(seed), k=10, probe seeds round-robin: warm mean 38.11ms, est. capacity 26.2/s. **Indicative**: in-process, no network hop.
 
 | rate/s | conc | samples | p50ms | p95ms | p99ms | max ms | errors |
 |---|---|---|---|---|---|---|---|
@@ -169,7 +169,7 @@ Workload: hybrid similar(seed), k=10, probe seeds round-robin — warm mean 38.1
 - platform `orion` · sha `e3526c7` · 2026-08-04T11:09:15+00:00 · config `2a486f229ad267a7` · arm `svd`
 - flows: F1 ok, F2 ok, F3 ok, F4 ok, F5 ok, F6 ok
 
-### Verdict: **GO** — hybrid beats vector-only on Recall@10 by +0.0267 (p=4.145e-06)
+### Verdict: **GO**: hybrid beats vector-only on Recall@10 by +0.0267 (p=4.145e-06)
 
 ### Quality (200 graph-necessary probes)
 
@@ -194,7 +194,7 @@ Best graph weight **2.0** on nDCG@10 (baseline 1.0). Held-out test half: baselin
 
 ### Latency (open-loop, coordinated-omission-safe)
 
-Workload: hybrid similar(seed), k=10, probe seeds round-robin — warm mean 221.1ms, est. capacity 4.5/s. **Indicative**: in-process, no network hop.
+Workload: hybrid similar(seed), k=10, probe seeds round-robin: warm mean 221.1ms, est. capacity 4.5/s. **Indicative**: in-process, no network hop.
 
 | rate/s | conc | samples | p50ms | p95ms | p99ms | max ms | errors |
 |---|---|---|---|---|---|---|---|
@@ -208,7 +208,7 @@ Workload: hybrid similar(seed), k=10, probe seeds round-robin — warm mean 221.
 - platform `hydra` · sha `0b36d7c` · 2026-08-04T13:42:36+00:00 · config `3e16e0cd60325e98` · arm `svd`
 - flows: F1 ok, F2 ok, F3 ok, F4 ok, F5 ok, F6 ok
 
-### Verdict: **GO** — hybrid beats vector-only on Recall@10 by +0.0138 (p=0.003825)
+### Verdict: **GO**: hybrid beats vector-only on Recall@10 by +0.0138 (p=0.003825)
 
 ### Quality (200 graph-necessary probes)
 
@@ -233,7 +233,7 @@ Best graph weight **2.0** on nDCG@10 (baseline 1.0). Held-out test half: baselin
 
 ### Latency (open-loop, coordinated-omission-safe)
 
-Workload: hybrid similar(seed), k=10, probe seeds round-robin — warm mean 103.84ms, est. capacity 9.6/s. **Indicative**: in-process, no network hop.
+Workload: hybrid similar(seed), k=10, probe seeds round-robin: warm mean 103.84ms, est. capacity 9.6/s. **Indicative**: in-process, no network hop.
 
 | rate/s | conc | samples | p50ms | p95ms | p99ms | max ms | errors |
 |---|---|---|---|---|---|---|---|
@@ -247,7 +247,7 @@ Workload: hybrid similar(seed), k=10, probe seeds round-robin — warm mean 103.
 - platform `lyra` · sha `fa9623e` · 2026-08-05T01:21:52+00:00 · config `8ca079def5c580df` · arm `svd`
 - flows: F1 ok, F2 ok, F3 ok, F4 ok, F5 ok, F6 ok
 
-### Verdict: **GO** — hybrid beats vector-only on Recall@10 by +0.0141 (p=0.005411)
+### Verdict: **GO**: hybrid beats vector-only on Recall@10 by +0.0141 (p=0.005411)
 
 ### Quality (200 graph-necessary probes)
 
@@ -272,7 +272,7 @@ Best graph weight **2.0** on nDCG@10 (baseline 1.0). Held-out test half: baselin
 
 ### Latency (open-loop, coordinated-omission-safe)
 
-Workload: hybrid similar(seed), k=10, probe seeds round-robin — warm mean 116.9ms, est. capacity 8.6/s. **Indicative**: in-process, no network hop.
+Workload: hybrid similar(seed), k=10, probe seeds round-robin: warm mean 116.9ms, est. capacity 8.6/s. **Indicative**: in-process, no network hop.
 
 | rate/s | conc | samples | p50ms | p95ms | p99ms | max ms | errors |
 |---|---|---|---|---|---|---|---|
@@ -286,7 +286,7 @@ Workload: hybrid similar(seed), k=10, probe seeds round-robin — warm mean 116.
 - platform `lyra` · sha `fa9623e` · 2026-08-05T02:21:06+00:00 · config `d506a5a45199671a` · arm `neural`
 - flows: F1 ok, F2 ok, F3 ok, F4 ok, F5 ok, F6 ok
 
-### Verdict: **GO** — hybrid beats vector-only on Recall@10 by +0.0176 (p=0.0003828)
+### Verdict: **GO**: hybrid beats vector-only on Recall@10 by +0.0176 (p=0.0003828)
 
 ### Quality (200 graph-necessary probes)
 
@@ -311,7 +311,7 @@ Best graph weight **2.0** on nDCG@10 (baseline 1.0). Held-out test half: baselin
 
 ### Latency (open-loop, coordinated-omission-safe)
 
-Workload: hybrid similar(seed), k=10, probe seeds round-robin — warm mean 116.97ms, est. capacity 8.5/s. **Indicative**: in-process, no network hop.
+Workload: hybrid similar(seed), k=10, probe seeds round-robin: warm mean 116.97ms, est. capacity 8.5/s. **Indicative**: in-process, no network hop.
 
 | rate/s | conc | samples | p50ms | p95ms | p99ms | max ms | errors |
 |---|---|---|---|---|---|---|---|
@@ -325,7 +325,7 @@ Workload: hybrid similar(seed), k=10, probe seeds round-robin — warm mean 116.
 - platform `orion` · sha `fa9623e` · 2026-08-05T02:39:25+00:00 · config `cbb9be4970564149` · arm `svd`
 - flows: F1 ok, F2 ok, F3 ok, F4 ok, F5 ok, F6 ok
 
-### Verdict: **GO** — hybrid beats vector-only on Recall@10 by +0.0267 (p=4.145e-06)
+### Verdict: **GO**: hybrid beats vector-only on Recall@10 by +0.0267 (p=4.145e-06)
 
 ### Quality (200 graph-necessary probes)
 
@@ -350,7 +350,7 @@ Best graph weight **2.0** on nDCG@10 (baseline 1.0). Held-out test half: baselin
 
 ### Latency (open-loop, coordinated-omission-safe)
 
-Workload: hybrid similar(seed), k=10, probe seeds round-robin — warm mean 37.45ms, est. capacity 26.7/s. **Indicative**: in-process, no network hop.
+Workload: hybrid similar(seed), k=10, probe seeds round-robin: warm mean 37.45ms, est. capacity 26.7/s. **Indicative**: in-process, no network hop.
 
 | rate/s | conc | samples | p50ms | p95ms | p99ms | max ms | errors |
 |---|---|---|---|---|---|---|---|
@@ -364,7 +364,7 @@ Workload: hybrid similar(seed), k=10, probe seeds round-robin — warm mean 37.4
 - platform `orion` · sha `fa9623e` · 2026-08-05T03:05:08+00:00 · config `5b503701e4074c76` · arm `neural`
 - flows: F1 ok, F2 ok, F3 ok, F4 ok, F5 ok, F6 ok
 
-### Verdict: **GO** — hybrid beats vector-only on Recall@10 by +0.0176 (p=0.0003828)
+### Verdict: **GO**: hybrid beats vector-only on Recall@10 by +0.0176 (p=0.0003828)
 
 ### Quality (200 graph-necessary probes)
 
@@ -389,7 +389,7 @@ Best graph weight **2.0** on nDCG@10 (baseline 1.0). Held-out test half: baselin
 
 ### Latency (open-loop, coordinated-omission-safe)
 
-Workload: hybrid similar(seed), k=10, probe seeds round-robin — warm mean 36.68ms, est. capacity 27.3/s. **Indicative**: in-process, no network hop.
+Workload: hybrid similar(seed), k=10, probe seeds round-robin: warm mean 36.68ms, est. capacity 27.3/s. **Indicative**: in-process, no network hop.
 
 | rate/s | conc | samples | p50ms | p95ms | p99ms | max ms | errors |
 |---|---|---|---|---|---|---|---|
@@ -403,7 +403,7 @@ Workload: hybrid similar(seed), k=10, probe seeds round-robin — warm mean 36.6
 - platform `hydra` · sha `fa9623e` · 2026-08-05T03:54:21+00:00 · config `a0e767ae42aae802` · arm `svd`
 - flows: F1 ok, F2 ok, F3 ok, F4 ok, F5 ok, F6 ok
 
-### Verdict: **GO** — hybrid beats vector-only on Recall@10 by +0.0138 (p=0.003825)
+### Verdict: **GO**: hybrid beats vector-only on Recall@10 by +0.0138 (p=0.003825)
 
 ### Quality (200 graph-necessary probes)
 
@@ -428,7 +428,7 @@ Best graph weight **2.0** on nDCG@10 (baseline 1.0). Held-out test half: baselin
 
 ### Latency (open-loop, coordinated-omission-safe)
 
-Workload: hybrid similar(seed), k=10, probe seeds round-robin — warm mean 100.77ms, est. capacity 9.9/s. **Indicative**: in-process, no network hop.
+Workload: hybrid similar(seed), k=10, probe seeds round-robin: warm mean 100.77ms, est. capacity 9.9/s. **Indicative**: in-process, no network hop.
 
 | rate/s | conc | samples | p50ms | p95ms | p99ms | max ms | errors |
 |---|---|---|---|---|---|---|---|
@@ -442,7 +442,7 @@ Workload: hybrid similar(seed), k=10, probe seeds round-robin — warm mean 100.
 - platform `hydra` · sha `fa9623e` · 2026-08-05T04:49:06+00:00 · config `17de02ea68e77ba1` · arm `neural`
 - flows: F1 ok, F2 ok, F3 ok, F4 ok, F5 ok, F6 ok
 
-### Verdict: **GO** — hybrid beats vector-only on Recall@10 by +0.0176 (p=0.0003828)
+### Verdict: **GO**: hybrid beats vector-only on Recall@10 by +0.0176 (p=0.0003828)
 
 ### Quality (200 graph-necessary probes)
 
@@ -467,7 +467,7 @@ Best graph weight **2.0** on nDCG@10 (baseline 1.0). Held-out test half: baselin
 
 ### Latency (open-loop, coordinated-omission-safe)
 
-Workload: hybrid similar(seed), k=10, probe seeds round-robin — warm mean 111.57ms, est. capacity 9.0/s. **Indicative**: in-process, no network hop.
+Workload: hybrid similar(seed), k=10, probe seeds round-robin: warm mean 111.57ms, est. capacity 9.0/s. **Indicative**: in-process, no network hop.
 
 | rate/s | conc | samples | p50ms | p95ms | p99ms | max ms | errors |
 |---|---|---|---|---|---|---|---|

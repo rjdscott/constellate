@@ -93,7 +93,7 @@ def test_equivalence_pre_change_shape_svd_only() -> None:
     orion = _artifact("orion", None, hybrid_r10=0.15, hybrid_ndcg10=0.02)
     lines = equivalence({"lyra-run": lyra, "orion-run": orion})
     text = "\n".join(lines)
-    assert "## Cross-platform quality equivalence (hybrid arm, vs Lyra) — svd" in text
+    assert "## Cross-platform quality equivalence (hybrid arm, vs Lyra): svd" in text
     row = next(line for line in lines if line.startswith("| orion-run"))
     assert "+0.0500" in row  # R@10 delta
     assert "-0.0300" in row  # nDCG@10 delta
@@ -108,10 +108,10 @@ def test_equivalence_partitions_arms_into_separate_sections() -> None:
     }
     lines = equivalence(artifacts)
     text = "\n".join(lines)
-    assert "vs Lyra) — svd" in text
-    assert "vs Lyra) — neural" in text
+    assert "vs Lyra): svd" in text
+    assert "vs Lyra): neural" in text
     # each section only carries the non-lyra run for its own arm
-    svd_section = text.split("— svd")[1].split("## Cross-platform")[0]
+    svd_section = text.split(": svd")[1].split("## Cross-platform")[0]
     assert "orion-svd" in svd_section
     assert "orion-neural" not in svd_section
 

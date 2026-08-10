@@ -20,7 +20,7 @@ Any change to this repo, from a fresh clone to an open PR.
    adapter; they skipped until phase 03 registered Lyra's four. New adapters
    register in `tests/conformance/conftest.py` and must pass unchanged.
 
-2. **Branch** — never commit to main:
+2. **Branch**: never commit to main:
 
    ```bash
    git checkout -b feat/<slug>    # or fix/ chore/ docs/
@@ -44,7 +44,7 @@ Any change to this repo, from a fresh clone to an open PR.
    ```
 
 5. **PR**: push, open with `gh pr create` (template auto-fills), title
-   `<type>(<scope>): <imperative summary>`. CI must be green before merge —
+   `<type>(<scope>): <imperative summary>`. CI must be green before merge:
    see [ci-and-merging](ci-and-merging.md).
 
 ## Failure modes
@@ -58,10 +58,10 @@ Any change to this repo, from a fresh clone to an open PR.
   adapter violates the contract; fix the adapter, never the suite.
 
 Closing out a plan phase? Run the `/phase-gate` skill before starting the
-next one — `make doc-check` is its deterministic half and runs in CI anyway.
+next one: `make doc-check` is its deterministic half and runs in CI anyway.
 
 ## Last verified
 
-2026-08-04 — phase 05 (`feat/orion`): 65 tests with Orion up (49 without); bench + report
+2026-08-04: phase 05 (`feat/orion`): 65 tests with Orion up (49 without); bench + report
 targets now real (`docs/runbooks/run-benchmarks.md`).
-2026-08-04 — phase 06 (`feat/hydra`): 81 tests with Orion + Hydra up (49 without, 8 parity tests skip unless both); run-hydra runbook added
+2026-08-04: phase 06 (`feat/hydra`): 81 tests with Orion + Hydra up (49 without, 8 parity tests skip unless both); run-hydra runbook added

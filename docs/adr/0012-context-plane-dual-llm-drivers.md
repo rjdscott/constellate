@@ -1,4 +1,4 @@
-# 0012 — Context plane demonstration: dual LLM drivers, local and API, behind one adapter
+# 0012: Context plane demonstration: dual LLM drivers, local and API, behind one adapter
 
 - **Status:** Accepted
 - **Date:** 2026-08-05
@@ -8,7 +8,7 @@
 
 Phases 01–08 proved the knowledge plane: one retrieval contract, three
 platforms, measured. The MCP server (ADR 0008) exposes it to agents, but
-"an agent could use this" is asserted, not demonstrated — the context
+"an agent could use this" is asserted, not demonstrated: the context
 plane needs a real LLM consumer driving the MCP tools end to end. The
 project is educational and ends in a conference talk from this machine
 (28 cores / 62 GB, no discrete GPU), where venue connectivity is
@@ -20,22 +20,22 @@ choice costs at platform scale.
 
 ## Options considered
 
-### Option A — Anthropic API only (Haiku-class)
+### Option A: Anthropic API only (Haiku-class)
 - Pros: best tool-calling reliability per dollar; zero local ops; fastest
   to build against.
 - Cons: breaks the offline-demo property for the only time in the
   project; audience cannot reproduce for free; "we called a frontier
   API" is a thin finding.
 
-### Option B — local small model only (Ollama-class, CPU)
+### Option B: local small model only (Ollama-class, CPU)
 - Pros: completes the everything-on-this-box thesis; free, reproducible,
   wifi-proof.
-- Cons: small-model tool-calling is the weak link — the demo's failure
+- Cons: small-model tool-calling is the weak link: the demo's failure
   mode becomes the model, not the platform; CPU latency is watchable,
   not snappy; one more moving part.
 
-### Option C — both, behind one driver adapter, compared as content
-- Pros: the comparison is itself the deliverable — implementation,
+### Option C: both, behind one driver adapter, compared as content
+- Pros: the comparison is itself the deliverable: implementation,
   fidelity, latency, cost, small-to-large-scale trade-offs measured on
   fixed tasks; mirrors the project's own pattern (one contract, multiple
   engines); demo day picks whichever rehearses better with the other as
@@ -45,9 +45,9 @@ choice costs at platform scale.
 
 ## Decision
 
-**We will build both drivers behind one adapter interface — Anthropic
+**We will build both drivers behind one adapter interface, Anthropic
 API (`claude-haiku-4-5-20251001`) and a local model
-(Qwen3 8B via user-space Ollama, CPU-only) — driving the existing MCP
+(Qwen3 8B via user-space Ollama, CPU-only), driving the existing MCP
 tools through the in-process FastMCP client, scored on a fixed task
 suite, because the local-vs-API comparison is the educational payload
 and either driver alone tells half the story.** Scope: demonstration
@@ -69,7 +69,7 @@ benchmark report never ingests them. The API key lives in gitignored
   the benchmark).
 - Committed: anthropic SDK + python-dotenv behind a `context` extra
   (core stays ML- and network-free); qwen3:8b (~5 GB) on this box.
-- Risked: local tool-calling may prove too unreliable to demo — that
+- Risked: local tool-calling may prove too unreliable to demo; that
   result is reported, not hidden, and the API driver carries the live
   demo.
 - **Revisit trigger:** a demo rehearsal where the local driver completes
