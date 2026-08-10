@@ -36,9 +36,9 @@ Create one ADR in `docs/adr/`, following `docs/adr/README.md` conventions and
      permitted edit to an accepted ADR.
 5. **Update the index** table in `docs/adr/README.md` (number, title, status).
 5b. **Append a migration-narrative entry** to
-   `docs/research/2026-08-01-palate-graph/04-migration-narrative.md` (date,
-   era, what changed, why it matters to the story, artifacts). Every accepted
-   ADR is a milestone; a pre-commit hook enforces this pairing.
+   `docs/research/2026-08-04-knowledge-plane-foundations/04-migration-narrative.md`
+   (date, era, what changed, why it matters to the story, artifacts). Every
+   accepted ADR is a milestone; the `/phase-gate` checklist verifies the pairing.
 6. **Report**: file path + one-line decision statement. If the ADR was created
    mid-task, continue the task; land the ADR in the same branch/PR as the work
    it governs.

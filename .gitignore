@@ -230,3 +230,6 @@ data/canonical/*
 
 # JetBrains
 .idea/
+
+# Claude Code local settings stay local
+.claude/settings.local.json
