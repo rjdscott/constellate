@@ -43,9 +43,9 @@ Conventions live in `docs/plans/README.md` — read it first. Two modes.
    - Verification commands from the phase file executed, output confirmed.
    - Artifacts exist.
    - Migration-narrative entry appended
-     (`docs/research/2026-08-01-palate-graph/04-migration-narrative.md`) —
-     every phase completion is a milestone in the talk arc; a pre-commit hook
-     enforces the pairing.
+     (`docs/research/2026-08-04-knowledge-plane-foundations/04-migration-narrative.md`)
+     — every phase completion is a milestone in the talk arc; the
+     `/phase-gate` checklist verifies the pairing.
 4. **Forks:** any mid-plan decision between real alternatives with lasting
    reach → invoke `/adr` before proceeding; link the ADR from the progress log.
 5. **Scope changes** get written in (new phase file or amended goal + status

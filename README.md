@@ -1,5 +1,9 @@
 # Constellate
 
+[![CI](https://github.com/rjdscott/constellate/actions/workflows/check.yml/badge.svg)](https://github.com/rjdscott/constellate/actions/workflows/check.yml)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue)](pyproject.toml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 An open experiment in building **knowledge planes**: the same retrieval
 contract — relational + vector + graph candidate generation, fusion, policy
 gating, and explainable ranking behind one API — served by three deliberately
@@ -8,6 +12,35 @@ and reproducibly.
 
 The question under test: *when does a graph plane earn its place beside
 vector search, and how much infrastructure does that actually take?*
+
+![Explorer overview](docs/research/2026-08-04-knowledge-plane-foundations/assets/explorer-overview-dark.jpg)
+
+![Playground — three panes](docs/research/2026-08-04-knowledge-plane-foundations/assets/explorer-playground-three-panes.jpg)
+
+## Key findings
+
+- **Cross-engine equivalence is a semantics contract, not a query dialect.**
+  Three graph engines (Kuzu Cypher, Postgres SQL, AGE openCypher) produce
+  retrieval quality identical to four decimals — because they implement the
+  same ranking contract, not translations of the same query.
+  ([findings](docs/research/2026-08-04-knowledge-plane-foundations/08-orion-benchmark-findings.md))
+- **Architecture beats transport.** The embedded, no-daemon platform was
+  assumed to own latency; measured, Postgres over TCP is ~3× faster at p50
+  and keeps scaling with concurrency, because in-process synchronous engine
+  calls serialize everything.
+  ([lessons L3](docs/research/2026-08-04-knowledge-plane-foundations/09-lessons-learned.md))
+- **A local 8B model demos the context plane — until the task chains.**
+  Haiku 4.5 scored 1.00 tool-call fidelity on the MCP suite; qwen3:8b scored
+  0.88 overall but 0.00 on multi-step chaining, confabulating grounded-looking
+  answers from wrong tool calls.
+  ([context-plane comparison](docs/research/2026-08-04-knowledge-plane-foundations/13-context-plane-llm.md))
+- **Conformance tests prove contracts; benchmarks prove systems.** Three
+  separate query-planner regressions turned a 70 ms graph expansion into a
+  minutes-long full-graph walk while every correctness test stayed green.
+  ([lessons L1](docs/research/2026-08-04-knowledge-plane-foundations/09-lessons-learned.md))
+
+Full set: [lessons learned](docs/research/2026-08-04-knowledge-plane-foundations/09-lessons-learned.md)
+(L1–L16) and the numbered findings docs alongside it.
 
 ## The constellations
 
@@ -22,15 +55,60 @@ Names are canonical keys everywhere (`PLATFORM=lyra`, `config/lyra.yaml`);
 the architecture terms are their permanent epithets. No hierarchy implied —
 right tool for the job ([ADR 0009](docs/adr/0009-platform-codenames-constellations.md)).
 
-## Quickstart
+## What's inside
+
+- **One retrieval contract** (`src/constellate/core/`) — candidate
+  generation, fusion, policy gating, explainable ranking — with a platform
+  adapter per constellation and a conformance suite that pins the semantics.
+- **A benchmark harness** (`src/constellate/bench/`, `bench/`) — quality
+  (nDCG/recall via ir-measures), latency (HdrHistogram percentiles), and a
+  dual embedding arm (genome-SVD vs neural,
+  [ADR 0006](docs/adr/0006-dual-embedding-ablation-genome-svd-plus-bge.md));
+  committed run artifacts under `bench/results/`.
+- **A context plane** (`src/constellate/mcp_server.py`,
+  `src/constellate/context/`) — the same service layer exposed as MCP tools,
+  driven by either an API model (Haiku 4.5) or a local one (qwen3:8b via
+  Ollama), with deterministic tool-call-fidelity scoring
+  ([ADR 0012](docs/adr/0012-context-plane-dual-llm-drivers.md)).
+- **An explorer UI** (`ui/`) — React SPA: constellation graph, retrieval
+  playground, benchmark dashboards; builds statically from committed
+  artifacts (`make ui-snapshot`), no live API needed.
+- **A documentation pipeline** (`docs/`) — research → ADR → plan → audit,
+  gated in CI (`make doc-check`); 12 ADRs, 9 runbooks, every phase resumable
+  by a stranger.
+
+## Getting started
 
 ```bash
+git clone https://github.com/rjdscott/constellate.git && cd constellate
 uv sync
-make check                 # ruff + mypy --strict + pytest
-make up PLATFORM=lyra      # no-op: Lyra is in-process
+make check                 # ruff + mypy --strict + pytest + doc-check
 ```
 
-Full loop: [docs/runbooks/local-dev-loop.md](docs/runbooks/local-dev-loop.md).
+Full loop — data, engines, benchmark (Lyra needs no containers):
+
+```bash
+make seed                  # download ml-25m (sha256-pinned) + build canonical parquet
+make load PLATFORM=lyra    # project canonical → engine stores
+make bench-smoke PLATFORM=lyra
+make bench PLATFORM=lyra && make report
+```
+
+Orion/Hydra are the same loop with `make up PLATFORM=orion` first (docker
+compose; throwaway local credentials, nothing secret). Step-by-step:
+[local-dev-loop runbook](docs/runbooks/local-dev-loop.md).
+
+The only secret in the whole project is an Anthropic API key, and only for
+the context-plane demo's API driver:
+
+```bash
+cp .env.example .env       # then fill in ANTHROPIC_API_KEY
+uv sync --extra context
+uv run python -m constellate.context.suite --driver anthropic --reps 3
+```
+
+Local, keyless alternative via Ollama:
+[run-context-demo runbook](docs/runbooks/run-context-demo.md).
 
 ## Where everything lives
 
@@ -46,3 +124,22 @@ Full loop: [docs/runbooks/local-dev-loop.md](docs/runbooks/local-dev-loop.md).
 Current status: see the [plan status table](docs/plans/2026-08-04-knowledge-plane/README.md)
 and the [migration narrative](docs/research/2026-08-04-knowledge-plane-foundations/04-migration-narrative.md)
 — the project's running story.
+
+## Data & attribution
+
+Benchmarks run on the [MovieLens ml-25m](https://grouplens.org/datasets/movielens/25m/)
+dataset, downloaded at first use (sha256-pinned) and never committed to this
+repo — GroupLens's terms prohibit redistribution and commercial use of the
+data ([ADR 0001](docs/adr/0001-pin-movielens-ml-25m.md)). If you use results
+derived from it, cite:
+
+> F. Maxwell Harper and Joseph A. Konstan. 2015. The MovieLens Datasets:
+> History and Context. ACM Transactions on Interactive Intelligent Systems
+> (TiiS) 5, 4: 19:1–19:19. <https://doi.org/10.1145/2827872>
+
+The connection-string credentials in `config/` and `compose/` are
+throwaway defaults for the local docker services — not secrets.
+
+## License
+
+Code is [MIT](LICENSE). The MovieLens dataset has its own terms (above).
