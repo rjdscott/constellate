@@ -3,7 +3,7 @@
 Both drivers (ADR 0012) run the same fixed task suite against the MCP
 tools over the shared service layer, score tool-call fidelity
 deterministically, and write a demo-class artifact to `bench/context/`
-(never `bench/results/` — these numbers are not benchmark-citable).
+(never `bench/results/`: these numbers are not benchmark-citable).
 
 ## When to use
 
@@ -12,14 +12,14 @@ local-vs-API comparison artifact after a model or suite change.
 
 ## Steps
 
-1. Dependencies (once per checkout — note `uv sync` replaces the extras
+1. Dependencies (once per checkout: note `uv sync` replaces the extras
    set, so name every extra you need):
 
    ```sh
    uv sync --extra context            # add --extra neural if you also need fastembed
    ```
 
-2. API driver — needs `ANTHROPIC_API_KEY` in gitignored `.env`
+2. API driver: needs `ANTHROPIC_API_KEY` in gitignored `.env`
    (`ANTHROPIC_API_KEY=sk-...`; never commit or echo it):
 
    ```sh
@@ -30,7 +30,7 @@ local-vs-API comparison artifact after a model or suite change.
    `overall fidelity=… tokens(in/out)=… est_cost_usd=…` and an artifact
    path. A full 3-rep run costs ≈ $0.12 at Haiku 4.5 pricing.
 
-3. Local driver — needs Ollama serving and the model pulled. User-space
+3. Local driver: needs Ollama serving and the model pulled. User-space
    install, no root:
 
    ```sh
@@ -49,15 +49,15 @@ local-vs-API comparison artifact after a model or suite change.
 
 4. Cross-platform task needs hydra up (`make up PLATFORM=hydra`); lyra
    needs seeded canonical data + `make load PLATFORM=lyra`. If a platform
-   is down its tasks fail loudly in the transcript — the suite does not
+   is down its tasks fail loudly in the transcript: the suite does not
    pre-check engine health.
 
 ## Failure modes
 
-- **Ollama `.tgz` release URL 404s** — as of v0.32.5 the Linux assets are
+- **Ollama `.tgz` release URL 404s**: as of v0.32.5 the Linux assets are
   `.tar.zst` (`ollama-linux-amd64.tar.zst`); the widely documented
   `ollama-linux-amd64.tgz` name is gone. Hit 2026-08-05.
-- **Grounding scored 0 for answers that are obviously correct** — the
+- **Grounding scored 0 for answers that are obviously correct**: the
   scorer matches normalized titles (articles folded, ALL parentheticals
   stripped). ml-25m titles embed original-language alternates
   ("…, The (Scaphandre et le papillon, Le) (2007)") and models freely
@@ -65,15 +65,15 @@ local-vs-API comparison artifact after a model or suite change.
   `_title_key`. A new zero-fidelity-across-all-reps pattern on a task
   that transcripts show succeeding = suspect the scorer first, the model
   second.
-- **`uv sync --extra context` silently uninstalled fastembed** — extras
+- **`uv sync --extra context` silently uninstalled fastembed**: extras
   are a set, not additive across invocations. Name all extras every sync.
   Hit 2026-08-05.
-- **Suite hangs at first local task** — model is cold-loading into RAM
+- **Suite hangs at first local task**: model is cold-loading into RAM
   (~5 GB); first request after `ollama serve` takes ~30 s extra. Warm it
   with a trivial prompt before a timed rehearsal.
 
 ## Last verified
 
-2026-08-05 — phase 09: anthropic driver fidelity 1.00 (3 reps, $0.12);
+2026-08-05: phase 09: anthropic driver fidelity 1.00 (3 reps, $0.12);
 local qwen3:8b fidelity 0.88 (3 reps, $0; multi-step chaining 0/3, see
 research doc 13).

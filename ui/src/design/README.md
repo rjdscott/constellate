@@ -1,8 +1,8 @@
-# Constellate design system — "Observatory"
+# Constellate design system: "Observatory"
 
 The identity argument: the project is named Constellate and its platforms
 are constellations (ADR 0009). The UI leans into that literally but with
-restraint — a night-sky instrument, not a screensaver. Explanation graphs
+restraint: a night-sky instrument, not a screensaver. Explanation graphs
 *are* constellations: nodes as stars, traversal paths as asterisms. Every
 other surface is a quiet, precise instrument panel that lets the data be
 the decoration.
@@ -33,7 +33,7 @@ Taste rules (enforced in review):
 ## Color
 
 Tokens are CSS custom properties (Tailwind v4 `@theme`); semantic names
-only in components — never raw hex.
+only in components: never raw hex.
 
 ### Neutrals (dark)
 
@@ -47,7 +47,7 @@ only in components — never raw hex.
 | `--color-text-dim` | `#9AA4B9` | secondary text |
 | `--color-text-faint` | `#6B7488` | placeholders, disabled, axis ticks |
 
-### Neutrals (light — "daylight observatory")
+### Neutrals (light, "daylight observatory")
 
 `--color-void #F6F7FB · surface #FFFFFF · raised #EEF1F7 · hairline
 #D9DEE9 · text #161D2E · text-dim #4C566B · text-faint #78829A`. Light
@@ -58,7 +58,7 @@ surface-step + hairline (shadows don't read on ink).
 
 One accent: **starlight gold** `--color-accent #E3B858` (dark) /
 `#8A6A1F` (light). Used for: primary actions, focus rings, active nav,
-the animated path highlight. Deliberately *not* a platform color — the
+the animated path highlight. Deliberately *not* a platform color: the
 accent means "you/attention", platforms mean data.
 
 ### Data hues
@@ -93,7 +93,7 @@ light variants darkened to ≥4.5:1 on white).
 - CVD: Viénot protanopia/deuteranopia simulation, pairwise ΔE*ab of the
   platform triad ≥ 24 in every condition (weakest: lyra–hydra under
   deuteranopia, which also carries a 0.55 vs 0.35 relative-luminance
-  gap). Rule regardless: hue is never the sole channel — series get
+  gap). Rule regardless: hue is never the sole channel: series get
   direct labels, distinct markers or dash patterns where they overlap.
 
 ## Typography
@@ -102,14 +102,14 @@ Two faces, bundled locally via `@fontsource` (a conference demo never
 depends on CDN wifi). A serif display face (Fraunces) was tried and
 retired 2026-08-05: clean over bookish.
 
-- **Inter** (variable) — everything, display included. Display = medium
+- **Inter** (variable): everything, display included. Display = medium
   weight, tracking −0.015em, large sizes; wordmark and overlines =
   uppercase, tracking 0.22–0.28em. Tabular-nums on any number that can
   change width.
-- **JetBrains Mono** — data: metric values, ids, fingerprints, code,
+- **JetBrains Mono**: data: metric values, ids, fingerprints, code,
   axis ticks, timing readouts.
 
-Scale (base 14 — this is a dense instrument, not a marketing page):
+Scale (base 14: this is a dense instrument, not a marketing page):
 `12 / 13 / 14 / 16 / 20 / 25 / 32 / 40 / 56`. Tokens `--text-xs …
 --text-3xl`, display sizes `--text-d1 56 / --text-d2 40 / --text-d3 32`
 (Fraunces). Line heights: 1.5 body, 1.2 headings, 1.0 display numerals.
@@ -119,7 +119,7 @@ Scale (base 14 — this is a dense instrument, not a marketing page):
 - 4px grid: `--space-1..10` = 4, 8, 12, 16, 20, 24, 32, 40, 48, 64.
 - Radius: `--radius-sm 4` (controls), `--radius-md 8` (cards),
   `--radius-lg 12` (panels/dialogs), `--radius-full` (pills). Nothing
-  bubblier — instruments have machined corners.
+  bubblier: instruments have machined corners.
 - App shell: fixed left rail (icons + labels, 220px, collapses to 64px),
   content max-width none (dashboards want the room), 12-col grid,
   `--space-6` gutters.
@@ -139,7 +139,7 @@ Durations `--motion-fast 120ms` (hover, toggles), `--motion-base 200ms`
 Motion (`motion/react`). Choreography rules: enter = fade + 4px rise;
 lists stagger ≤ 40ms/item, cap 8; path highlight = stroke draw-on then
 node rings, sequential along the path (the one place motion is allowed
-to be theatrical — it is literally the explanation). All of it behind
+to be theatrical: it is literally the explanation). All of it behind
 `prefers-reduced-motion`.
 
 ## Charts (Observable Plot)

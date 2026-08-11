@@ -1,7 +1,7 @@
 # Explainer: the embedding ablation, piece by piece
 
 *Written 2026-08-05, mid phase 08, while the six-run matrix was executing.
-Audience: someone new to the project — or to embeddings entirely. Companion
+Audience: someone new to the project, or to embeddings entirely. Companion
 to ADR 0006 (the decision) and `05-embeddings-and-benchmarks.md` (the
 methodology research); this doc explains, those decide.*
 
@@ -22,12 +22,12 @@ The project has two ways of making them, called the two "arms":
    long before deep learning. Fast, fully deterministic, zero ML
    dependencies. Its weakness: the other ~48,000 movies have no genome
    data, so they get a crude stand-in (the average of their genres'
-   vectors) — deliberately weak, and flagged (`has_genome`) so the effect
+   vectors), deliberately weak, and flagged (`has_genome`) so the effect
    is measurable rather than hidden.
 
 2. **Neural arm (the modern one).** A small language model
    (bge-small-en-v1.5, run locally on CPU via fastembed/ONNX) reads a
-   sentence we build for each movie — title, genres, top 15 genome tags —
+   sentence we build for each movie (title, genres, top 15 genome tags)
    and produces 384 numbers capturing its meaning as text. This is what
    production semantic search does in 2026. It covers all 62,423 movies
    equally. Embedding the full catalog took about two minutes on 28 cores.
@@ -55,21 +55,21 @@ Each individual benchmark run has four sections:
   Fast; catches a broken setup before wasting an hour measuring it.
 - **Quality.** For every probe in the probe set (questions where we know
   the right answers, built from graph structure), ask the platform three
-  times — vector-only, graph-only, hybrid — and score each against the
+  times (vector-only, graph-only, hybrid) and score each against the
   known answers. This is where the SVD-vs-neural verdict comes from.
 - **Fusion tuning.** A small grid search over how much weight the graph's
   opinion gets versus the vector's, done on one half of the probes and
   validated on the other half, so we're not grading our own homework.
-- **Latency.** The slow part, and slow on purpose — see below.
+- **Latency.** The slow part, and slow on purpose: see below.
 
 ## Why it takes one to three hours
 
 For each run the harness fires 5,000 timed requests at several concurrency
-levels, plus a deliberate overload run past the saturation point — roughly
+levels, plus a deliberate overload run past the saturation point: roughly
 20,000+ requests per benchmark, six benchmarks. The requests are sent
 "open loop": on a fixed schedule, like real users, rather than politely
 waiting for each response before sending the next. Open loop matters
-because the polite version hides slowness — a stalled server receives
+because the polite version hides slowness: a stalled server receives
 fewer requests, so its bad numbers never get recorded. That trap has a
 name, *coordinated omission*, and avoiding it is why honest tail latency
 (p99: the experience of the unluckiest 1% of requests) needs thousands of
@@ -77,7 +77,7 @@ samples you cannot rush. The requests are the clock.
 
 On top of that, the reloads between arms aren't free. Postgres drops its
 vector table and rebuilds an HNSW index (a navigable graph over all
-~219,000 vectors) from scratch — minutes of real work per switch, and the
+~219,000 vectors) from scratch: minutes of real work per switch, and the
 384-dim vectors are 1.5× the data of the 256-dim ones.
 
 ## Why it matters
@@ -85,8 +85,8 @@ vector table and rebuilds an HNSW index (a navigable graph over all
 Three reasons, ascending:
 
 1. **It's the honest way to make the claim.** "The neural arm feels
-   better" is vibes. Six committed JSON artifacts — same probes, same code
-   version, only the embedding swapped — is evidence.
+   better" is vibes. Six committed JSON artifacts (same probes, same code
+   version, only the embedding swapped) is evidence.
 2. **The comparison is the finding.** Per ADR 0006, the payload isn't "we
    used a model"; it's *does a 2026 text embedding beat 2011-style tag
    math for movie retrieval, on which query types, and at what latency
@@ -95,8 +95,8 @@ Three reasons, ascending:
    13.8k movies, so the eval carries a "genome subset" slice: probes where
    every movie involved has real genome data. Comparing there is
    apples-to-apples; comparing overall shows what coverage asymmetry does
-   to a metric. A benchmark can lie by construction unless you stratify it
-   — one of the better lessons this project demonstrates.
+   to a metric. A benchmark can lie by construction unless you stratify it:
+   one of the better lessons this project demonstrates.
 
 ## Where the results land
 

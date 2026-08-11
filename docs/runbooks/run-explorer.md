@@ -37,7 +37,7 @@ into an agent session.
    build result).
 
 4. Static snapshot (dashboards + overview from committed artifacts alone,
-   no API — the public-showcase artifact):
+   no API: the public-showcase artifact):
 
    ```sh
    make ui-snapshot
@@ -65,7 +65,7 @@ into an agent session.
 ## Failure modes
 
 - **All platforms `offline` in the UI, engines demonstrably up.** The API
-  process isn't running or the Vite proxy target is wrong — check
+  process isn't running or the Vite proxy target is wrong: check
   `uvicorn` on :8000 and `ui/vite.config.ts` proxy. Hit 2026-08-05 (the
   uvicorn process had died silently; UI showed three hollow dots).
 - **Vite dev serves a stale or near-empty stylesheet after branch
@@ -73,7 +73,7 @@ into an agent session.
   CSS-first build across checkouts. Hit 2026-08-05.
 - **Platform shows `alive: true` but requests fail.** Cannot happen since
   2026-08-05 (health() runs real per-plane point lookups and failures
-  evict the cached service — adversarial-review fix); if seen, that
+  evict the cached service, adversarial-review fix); if seen, that
   regression class returned: check `Service.health()` still does I/O.
 - **Port 5173 taken → Vite silently picks 5174.** Use
   `pnpm dev --port 5173 --strictPort` when the port matters. Hit
@@ -81,5 +81,5 @@ into an agent session.
 
 ## Last verified
 
-2026-08-05 — phase 07 close: dev loop, production shape, snapshot build,
+2026-08-05: phase 07 close: dev loop, production shape, snapshot build,
 MCP selftest (lyra + hydra), all three platforms alive in one process.

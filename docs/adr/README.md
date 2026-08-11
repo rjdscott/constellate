@@ -9,7 +9,7 @@ pipeline (research → ADR → plan → audit).
   renumbered. Slug states the decision, not the topic area.
 - Structure: `template.md` (Nygard format + options considered).
 - Accepted ADRs are immutable. To change course, write a new ADR and set the
-  old one's status line to `Superseded by [NNNN](NNNN-slug.md)` — that line is
+  old one's status line to `Superseded by [NNNN](NNNN-slug.md)`: that line is
   the only permitted edit.
 - ADRs cite research (`docs/research/**`) rather than restating it.
 - ADRs land in the same PR as the work they govern.

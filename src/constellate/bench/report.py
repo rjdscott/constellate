@@ -66,7 +66,7 @@ def equivalence(artifacts: dict[str, dict[str, Any]]) -> list[str]:
             continue
         base = lyra[-1]["quality"]["arms"]["hybrid"]["overall"]
         lines += [
-            f"## Cross-platform quality equivalence (hybrid arm, vs Lyra) — {arm}",
+            f"## Cross-platform quality equivalence (hybrid arm, vs Lyra): {arm}",
             "",
             "| run | " + " | ".join(EQUIVALENCE_METRICS) + " | tolerance | verdict |",
             "|---|" + "---|" * (len(EQUIVALENCE_METRICS) + 2),
@@ -158,7 +158,7 @@ def verdict(artifact: dict[str, Any]) -> tuple[str, str]:
     if delta > 0 and p is not None and p < P_THRESHOLD:
         return "GO", f"hybrid beats vector-only on Recall@10 by {delta:+.4f} ({p_text})"
     return "NO-GO", (
-        f"no significant hybrid win on Recall@10 (delta {delta:+.4f}, {p_text}) — "
+        f"no significant hybrid win on Recall@10 (delta {delta:+.4f}, {p_text}): "
         "re-scope before container work"
     )
 
@@ -197,7 +197,7 @@ def _latency_table(artifact: dict[str, Any]) -> list[str]:
     if not latency:
         return ["_latency skipped for this run_"]
     lines = [
-        f"Workload: {latency['workload']} — warm mean "
+        f"Workload: {latency['workload']}: warm mean "
         f"{latency['calibration']['warm_mean_ms']}ms, "
         f"est. capacity {latency['calibration']['est_capacity_hz']}/s. "
         "**Indicative**: in-process, no network hop.",
@@ -230,7 +230,7 @@ def _run_section(artifact: dict[str, Any], name: str) -> list[str]:
         f"arm `{_arm(artifact)}`",
         f"- flows: {flows}",
         "",
-        f"### Verdict: **{word}** — {reason}",
+        f"### Verdict: **{word}**: {reason}",
         "",
         f"### Quality ({artifact['quality']['n_probes']} graph-necessary probes)",
         "",

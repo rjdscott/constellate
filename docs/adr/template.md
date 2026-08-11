@@ -1,4 +1,4 @@
-# NNNN — Title stating the decision
+# NNNN: Title stating the decision
 
 - **Status:** Proposed | Accepted | Superseded by [NNNN](NNNN-slug.md)
 - **Date:** YYYY-MM-DD
@@ -6,17 +6,17 @@
 
 ## Context
 
-Forces and constraints only — no solutions. A stranger to the repo must
+Forces and constraints only: no solutions. A stranger to the repo must
 understand the tension after this section.
 
 ## Options considered
 
-### Option A — name
+### Option A: name
 One-line description.
 - Pros: …
 - Cons: …
 
-### Option B — name
+### Option B: name
 …
 
 ## Decision
@@ -29,7 +29,7 @@ One-line description.
 - Harder: …
 - Committed: …
 - Risked: …
-- **Revisit trigger:** specific metric, date, or event — never "if needed".
+- **Revisit trigger:** specific metric, date, or event, never "if needed".
 
 ## Related
 
